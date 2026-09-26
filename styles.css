@@ -236,3 +236,4 @@ main {
 }
 .controles3d { display: flex; gap: 10px; flex: none; }
 .medidas-ref { flex: none; margin: 8px 2px; font-size: .78rem; color: var(--suave); text-align: center; }
+.version { text-align: center; font-size: .7rem; color: var(--suave); opacity: .7; margin: 10px 0 0; }

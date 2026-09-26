@@ -3,6 +3,8 @@
 // y la conversación por voz que arma el despiece.
 import { MODELOS, modeloPorId, dibujoFrontal } from './closet/modelos.js';
 
+const VERSION = 7;   // igual al número de CACHE en sw.js: se muestra en la app para saber qué versión tiene cada celular
+
 const s = (paths) =>
   `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
 
@@ -92,6 +94,7 @@ function trabajo(t) {
         `<li><span class="n">${i + 1}</span><div><b>${b}</b><span>${s}</span></div></li>`).join('')}
     </ol>
     <p class="pronto">🛠️ ${esCloset ? 'Los siguientes pasos están en construcción.' : 'Esta sección está en construcción. Empezamos por el Closet.'}</p>
+    <p class="version">Versión ${VERSION}</p>
     </div>`;
 }
 
@@ -192,6 +195,12 @@ window.addEventListener('hashchange', mostrar);
 mostrar();
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  // Si ya había una versión instalada y llega una nueva, recargar una vez para usarla de inmediato.
+  const habiaVersion = !!navigator.serviceWorker.controller;
+  let recargando = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (habiaVersion && !recargando) { recargando = true; location.reload(); }
+  });
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
 }
 

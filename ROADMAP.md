@@ -59,7 +59,8 @@ en un formato que el depósito acepte para despachar.
 
 ## Técnico
 - Publicación: repo público `jrmunozma21171323/despiece-carpinteria`, GitHub Pages desde `main` (raíz). Cada `git push` republica en ~1 min.
-- Al cambiar archivos estáticos, subir la versión de `CACHE` en `sw.js` para que los celulares tomen lo nuevo.
+- **En cada publicación subir la versión**: `CACHE` en `sw.js` y `VERSION` en `app.js` (mismo número; se ve al pie de la pantalla de cada trabajo).
+  El service worker pide los archivos con `no-cache` (GitHub Pages guarda copias 10 min y mezclaba versiones) y la app se recarga sola al llegar una versión nueva.
 - Estático: `index.html`, `styles.css`, `app.js`, `sw.js`, `manifest.webmanifest`, `icons/`, `img/` (ilustraciones SVG).
 - Íconos: `python tools/generar_iconos.py` (PIL) los regenera en `icons/`.
 - **`closet/modelos.js` es la fuente única de cada modelo** (medidas en metros, cuerpos y elementos).

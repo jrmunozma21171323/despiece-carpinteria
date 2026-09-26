@@ -1,5 +1,6 @@
 // Service worker: deja la app abriendo aunque no haya señal (el taller o la obra).
-const CACHE = 'despiece-v6';
+// OJO: subir la versión en cada publicación.
+const CACHE = 'despiece-v7';
 const ARCHIVOS = [
   './', 'index.html', 'app.js', 'styles.css', 'manifest.webmanifest', 'closet/modelos.js', 'closet/visor3d.js',
   'img/closet.svg', 'img/cocina.svg', 'img/bano.svg', 'img/puerta.svg', 'img/sala.svg', 'img/comedor.svg', 'img/cama.svg',
@@ -7,7 +8,13 @@ const ARCHIVOS = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARCHIVOS)).then(() => self.skipWaiting()));
+  // cache: 'reload' = pedirle los archivos al servidor, nunca a la memoria del navegador
+  // (GitHub Pages deja copias de hasta 10 min y eso mezclaba versiones viejas con nuevas).
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(c => c.addAll(ARCHIVOS.map(u => new Request(u, { cache: 'reload' }))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', e => {
@@ -18,16 +25,27 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Red primero (para ver siempre lo último); si no hay red, lo guardado.
+const guardar = (req, r) => {
+  if (r.ok) { const copia = r.clone(); caches.open(CACHE).then(c => c.put(req, copia)); }
+  return r;
+};
+
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
-  e.respondWith(
-    fetch(e.request)
-      .then(r => {
-        const copia = r.clone();
-        caches.open(CACHE).then(c => c.put(e.request, copia));
-        return r;
-      })
-      .catch(() => caches.match(e.request).then(r => r || caches.match('index.html')))
-  );
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+
+  // Archivos de la app: red primero, confirmando con el servidor que sean los últimos;
+  // si no hay señal, lo guardado.
+  if (url.origin === location.origin) {
+    e.respondWith(
+      fetch(url.href, { cache: 'no-cache' })
+        .then(r => guardar(req, r))
+        .catch(() => caches.match(req).then(r => r || caches.match('index.html')))
+    );
+    return;
+  }
+
+  // Motor 3D (versión fija en el CDN): lo guardado primero; así el 3D abre sin señal.
+  e.respondWith(caches.match(req).then(r => r || fetch(req).then(res => guardar(req, res))));
 });
