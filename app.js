@@ -1,6 +1,7 @@
-// Despiece Carpintería — etapa 1: mosaico de trabajos.
-// Cada trabajo tendrá luego ~5 modelos base + "Otro modelo", su menú de materiales
+// Despiece Carpintería — mosaico de trabajos y, por ahora, el flujo del Closet.
+// Cada trabajo tendrá sus modelos base + "Construye tu modelo", su menú de materiales
 // y la conversación por voz que arma el despiece.
+import { MODELOS, modeloPorId, dibujoFrontal } from './closet/modelos.js';
 
 const s = (paths) =>
   `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
@@ -54,37 +55,137 @@ function inicio() {
     </div>`;
 }
 
+// ---------- Estado guardado en el celular (sobrevive si se cierra la app) ----------
+const guardar = (clave, valor) => { try { localStorage.setItem('despiece.' + clave, JSON.stringify(valor)); } catch {} };
+const leer = clave => { try { return JSON.parse(localStorage.getItem('despiece.' + clave)); } catch { return null; } };
+
+const PASOS = [
+  ['Escoge un modelo', 'Modelos base listos para ajustar, o construye el tuyo.'],
+  ['Escoge el material', 'Melamina, RH, MDF… con su espesor y color.'],
+  ['Conversa con el asistente', 'Te pregunta medidas y detalles por voz. Puedes mandarle fotos.'],
+  ['Recibe el despiece', 'Piezas, cantos, tableros, herrajes y consumibles, listo para el depósito.'],
+];
+
 function trabajo(t) {
+  const esCloset = t.id === 'closet';
+  const modelo = esCloset && modeloPorId(leer('closet')?.modelo);
+  const paso1 = !esCloset ? '' : modelo
+    ? `<li class="hecho"><span class="n">✔</span>
+         <div class="paso-cuerpo">
+           <span class="miniatura">${dibujoFrontal(modelo)}</span>
+           <div><b>${modelo.nombre}</b><span>Modelo escogido</span>
+             <span class="acciones"><button class="enlace" data-ir="#closet/3d/${modelo.id}">Ver en 3D</button>
+             <button class="enlace" data-ir="#closet/modelos">Cambiar</button></span></div></div></li>`
+    : `<li class="activo"><button class="paso-boton" data-ir="#closet/modelos"><span class="n">1</span>
+         <div><b>${PASOS[0][0]}</b><span>${PASOS[0][1]}</span></div><span class="flecha">›</span></button></li>`;
   app.innerHTML = `
     <div style="--c:${t.color}">
-    <button class="volver" data-volver>‹ Volver</button>
+    <button class="volver" data-ir="#">‹ Volver</button>
     <div class="portada" style="background-image:url(img/${t.id}.svg)" role="img" aria-label="${t.nombre}"></div>
     <div class="cabeza">
       <span class="chip">${t.icono}</span>
       <div><h2>${t.nombre}</h2><p>${t.detalle}</p></div>
     </div>
     <ol class="pasos">
-      <li><span class="n">1</span><div><b>Escoge un modelo</b><span>Modelos base listos para ajustar, u “Otro modelo” si ninguno te sirve.</span></div></li>
-      <li><span class="n">2</span><div><b>Escoge el material</b><span>Melamina, RH, MDF… con su espesor y color.</span></div></li>
-      <li><span class="n">3</span><div><b>Conversa con el asistente</b><span>Te pregunta medidas y detalles por voz. Puedes mandarle fotos.</span></div></li>
-      <li><span class="n">4</span><div><b>Recibe el despiece</b><span>Piezas, cantos, tableros, herrajes y consumibles, listo para el depósito.</span></div></li>
+      ${paso1}
+      ${PASOS.map(([b, s], i) => (esCloset && i === 0) ? '' :
+        `<li><span class="n">${i + 1}</span><div><b>${b}</b><span>${s}</span></div></li>`).join('')}
     </ol>
-    <p class="pronto">🛠️ Esta parte está en construcción. Pronto podrás hablar con el asistente desde aquí.</p>
+    <p class="pronto">🛠️ ${esCloset ? 'Los siguientes pasos están en construcción.' : 'Esta sección está en construcción. Empezamos por el Closet.'}</p>
     </div>`;
 }
 
+// ---------- Closet: escoger modelo ----------
+let seleccion = null;
+
+function modelosCloset() {
+  seleccion = seleccion || leer('closet')?.modelo || null;
+  app.innerHTML = `
+    <div class="pantalla" style="--c:#0e6474">
+      <button class="volver" data-ir="#closet">‹ Closet</button>
+      <div class="titulo-pantalla"><h2>Escoge un modelo</h2><p>Toca el que más les guste. Las medidas se ajustan después.</p></div>
+      <div class="modelos">
+        ${MODELOS.map(m => `
+          <button class="modelo" data-modelo="${m.id}" aria-pressed="${m.id === seleccion}">
+            <span class="dibujo">${dibujoFrontal(m)}</span>
+            <strong>${m.nombre}</strong><small>${m.resumen}</small>
+            <span class="check" aria-hidden="true">✔</span>
+          </button>`).join('')}
+      </div>
+      <button class="propio" disabled>✏️ Construye tu modelo <small>Próximamente</small></button>
+      <div class="barra-accion" data-barra></div>
+    </div>`;
+  pintarBarra();
+}
+
+function pintarBarra() {
+  const barra = app.querySelector('[data-barra]');
+  const m = modeloPorId(seleccion);
+  barra.innerHTML = m
+    ? `<span>Escogiste<br><b>${m.nombre}</b></span><button class="primario" data-ir="#closet/3d/${m.id}">Ver en 3D ›</button>`
+    : `<span class="apagado">Toca un modelo para escogerlo</span>`;
+  app.querySelectorAll('.modelo').forEach(b => b.setAttribute('aria-pressed', b.dataset.modelo === seleccion));
+}
+
+// ---------- Closet: visor 3D ----------
+let visor = null;
+
+async function closet3d(id) {
+  const m = modeloPorId(id);
+  if (!m) { location.hash = '#closet/modelos'; return; }
+  const { ancho, alto, fondo } = m.medidas;
+  const f = n => n.toFixed(2).replace('.', ',');
+  const conCajones = m.cuerpos.some(c => c.elementos.some(e => e.t === 'cajones'));
+  app.innerHTML = `
+    <div class="pantalla">
+      <div class="fila-titulo"><button class="volver" data-ir="#closet/modelos">‹ Modelos</button><b>${m.nombre}</b></div>
+      <div class="visor" data-visor>
+        <p class="cargando">Armando el closet en 3D…</p>
+        <p class="pista">Arrastra para girar · pellizca para acercar${conCajones ? ' · toca un cajón' : ''}</p>
+      </div>
+      <div class="controles3d">
+        ${conCajones ? '<button class="secundario" data-accion="cajones">Abrir cajones</button>' : ''}
+        <button class="secundario" data-accion="frente">Vista de frente</button>
+      </div>
+      <p class="medidas-ref">Medidas de referencia: ${f(ancho)} ancho × ${f(alto)} alto × ${f(fondo)} fondo (m). Luego las ajustamos a las tuyas.</p>
+      <button class="primario ancho" data-accion="confirmar" data-modelo3d="${m.id}">✔ Usar este modelo</button>
+    </div>`;
+  const caja = app.querySelector('[data-visor]');
+  try {
+    const { montarVisor } = await import('./closet/visor3d.js');
+    if (!caja.isConnected) return;   // ya se fue de la pantalla mientras cargaba
+    visor = montarVisor(caja, m);
+    caja.querySelector('.cargando').remove();
+  } catch (err) {
+    console.error(err);
+    caja.querySelector('.cargando').textContent = 'No se pudo cargar el 3D. Revisa la conexión a internet e intenta de nuevo.';
+  }
+}
+
+// ---------- Rutas: #closet, #closet/modelos, #closet/3d/<modelo> ----------
 function mostrar() {
-  const id = location.hash.slice(1);
+  visor?.destruir(); visor = null;
+  const [id, sub, arg] = location.hash.slice(1).split('/');
   const t = TRABAJOS.find(x => x.id === id);
-  t ? trabajo(t) : inicio();
-  window.scrollTo(0, 0);
+  if (id === 'closet' && sub === 'modelos') modelosCloset();
+  else if (id === 'closet' && sub === '3d') closet3d(arg);
+  else t ? trabajo(t) : inicio();
+  app.scrollTop = 0;
 }
 
 app.addEventListener('click', e => {
-  const b = e.target.closest('[data-id], [data-volver]');
+  const b = e.target.closest('[data-id], [data-ir], [data-modelo], [data-accion]');
   if (!b) return;
   if (b.dataset.id) location.hash = b.dataset.id;
-  else history.length > 1 ? history.back() : (location.hash = '');
+  else if (b.dataset.ir) location.hash = b.dataset.ir;
+  else if (b.dataset.modelo) { seleccion = b.dataset.modelo; pintarBarra(); }
+  else if (b.dataset.accion === 'cajones' && visor) b.textContent = visor.alternarCajones() ? 'Cerrar cajones' : 'Abrir cajones';
+  else if (b.dataset.accion === 'frente' && visor) visor.vistaFrontal();
+  else if (b.dataset.accion === 'confirmar') {
+    guardar('closet', { ...(leer('closet') || {}), modelo: b.dataset.modelo3d });
+    seleccion = b.dataset.modelo3d;
+    location.hash = '#closet';
+  }
 });
 
 window.addEventListener('hashchange', mostrar);
@@ -93,3 +194,4 @@ mostrar();
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }
+

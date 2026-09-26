@@ -16,6 +16,13 @@
   <meta name="apple-mobile-web-app-title" content="Despiece">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="stylesheet" href="styles.css">
+  <!-- Motor 3D (Three.js), versión fija -->
+  <script type="importmap">
+  { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  } }
+  </script>
 </head>
 <body>
   <header class="barra">
@@ -28,6 +35,6 @@
 
   <main id="app"></main>
 
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

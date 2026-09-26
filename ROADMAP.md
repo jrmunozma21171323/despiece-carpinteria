@@ -30,10 +30,19 @@ en un formato que el depósito acepte para despachar.
 
 ## Etapas
 - [x] **Etapa 1**: PWA instalable, ícono, mosaico de 7 trabajos, pantalla por trabajo (placeholder).
-- [~] **Etapa 1b**: publicada en GitHub Pages → https://jrmunozma21171323.github.io/despiece-carpinteria/
-  ✔ Instalada en Android (Samsung A17, 2026-09-26). Falta: validar cómo se ve y probar en iPhone.
-  **Regla del usuario:** no se trabaja lo de adentro (etapa 2+) hasta cerrar la PWA.
-- [ ] **Etapa 2**: menú de materiales + 5 modelos base del Closet (con dibujo de cada uno).
+- [x] **Etapa 1b**: publicada en GitHub Pages → https://jrmunozma21171323.github.io/despiece-carpinteria/
+  ✔ Instalada y aprobada en Android (Samsung A17, 2026-09-26). Pendiente: probar en iPhone.
+- **Método (usuario, 2026-09-26): sección por sección.** Dejar el Closet al 100 % y reutilizarlo en las demás.
+- [~] **Etapa 2 — Closet**
+  - [x] Paso 1 "Escoge un modelo": 4 modelos (Clásico 3 cuerpos, Colgado largo + cajonera,
+        Doble tubo + zapatero, Esencial 2 cuerpos) en una sola pantalla, el escogido marcado con ✔
+        y barra "Escogiste: …". Tarjeta "Construye tu modelo" (próximamente).
+  - [x] **Vista 3D** del modelo escogido (pedido del usuario: "que cliente y carpintero estén seguros de lo
+        que van a instalar"): girar, acercar, cajones que entran y salen, vista de frente, "Usar este modelo".
+  - [ ] Construye tu modelo.
+  - [ ] Paso 2: menú de materiales.
+  - Decisiones: el modelo = **distribución interior**; las puertas se preguntan aparte. Las medidas de cada
+    modelo son de referencia; con las reales, el asistente ajusta y puede sugerir más o menos cuerpos.
 - [ ] **Etapa 3**: motor de despiece del Closet (reglas → piezas, cantos, tableros, herrajes).
 - [ ] **Etapa 4**: asistente de voz (conversación + fotos) para el Closet.
 - [ ] **Etapa 5**: exportación compatible con CutList; validar en ImporMaderas.
@@ -53,4 +62,9 @@ en un formato que el depósito acepte para despachar.
 - Al cambiar archivos estáticos, subir la versión de `CACHE` en `sw.js` para que los celulares tomen lo nuevo.
 - Estático: `index.html`, `styles.css`, `app.js`, `sw.js`, `manifest.webmanifest`, `icons/`, `img/` (ilustraciones SVG).
 - Íconos: `python tools/generar_iconos.py` (PIL) los regenera en `icons/`.
+- **`closet/modelos.js` es la fuente única de cada modelo** (medidas en metros, cuerpos y elementos).
+  De ahí salen el dibujo de la tarjeta (`dibujoFrontal`), el 3D (`closet/visor3d.js`) y, más adelante, el despiece.
+- 3D con Three.js 0.170 desde jsDelivr (import map en `index.html`); se carga solo al abrir el visor.
+  La textura de melamina se dibuja en código (sin imágenes) y la veta va a escala por el lado largo de cada pieza.
+- Rutas: `#closet`, `#closet/modelos`, `#closet/3d/<modelo>`. El modelo escogido se guarda en `localStorage` (`despiece.closet`).
 - Vista previa local: config `despiece` (python http.server, puerto 5173).
