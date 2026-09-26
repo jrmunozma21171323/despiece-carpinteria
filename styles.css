@@ -19,7 +19,9 @@ body {
   margin: 0;
   color: var(--texto);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  min-height: 100vh;
+  /* La app ocupa exactamente el alto de la pantalla: el inicio nunca obliga a desplazarse */
+  height: 100vh; height: 100dvh;
+  display: flex; flex-direction: column;
   -webkit-tap-highlight-color: transparent;
   /* beige con una veta suave de madera */
   background-color: var(--fondo);
@@ -33,41 +35,51 @@ body {
   padding: calc(14px + env(safe-area-inset-top)) 16px 14px;
   background: linear-gradient(135deg, #13798b, var(--petroleo-osc));
   color: #fff;
-  position: sticky; top: 0; z-index: 5;
+  flex: none;
   box-shadow: 0 2px 10px rgba(9, 62, 74, .25);
 }
 .logo { border-radius: 10px; display: block; box-shadow: 0 0 0 2px rgba(255, 255, 255, .25); }
 .barra h1 { margin: 0; font-size: 1.15rem; font-weight: 700; letter-spacing: .2px; }
 .barra .sub { margin: 2px 0 0; font-size: .82rem; color: #ffd27a; }
 
-main { max-width: 720px; margin: 0 auto; padding: 16px 16px calc(28px + env(safe-area-inset-bottom)); }
+main {
+  flex: 1; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column;
+  width: 100%; max-width: 720px; margin: 0 auto;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+}
 
-.saludo { margin: 4px 2px 14px; }
-.saludo h2 { margin: 0 0 4px; font-size: 1.35rem; }
-.saludo p { margin: 0; color: var(--suave); font-size: .95rem; }
+.saludo { margin: 0 2px 10px; flex: none; }
+.saludo h2 { margin: 0 0 2px; font-size: 1.25rem; }
+.saludo p { margin: 0; color: var(--suave); font-size: .9rem; }
 
 .mosaico {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  /* 4 filas (closet ancho + 3 de a dos) que se reparten el alto que quede libre */
+  grid-template-rows: 1.15fr repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  flex: 1; min-height: 440px; /* solo en pantallas muy bajitas aparece el desplazamiento */
 }
-@media (min-width: 560px) { .mosaico { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 560px) {
+  .mosaico { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); }
+}
 
-/* Tarjeta: la ilustración llena el recuadro (misma proporción que el dibujo: 1:1, la ancha 2:1).
-   Cada trabajo trae su color en --c. */
+/* Tarjeta: la ilustración llena el recuadro anclada abajo (el mueble y el piso siempre se ven;
+   si sobra, se recorta solo pared). Cada trabajo trae su color en --c. */
 .opcion {
   position: relative;
   display: flex; align-items: flex-start;
-  aspect-ratio: 1 / 1;
-  padding: 10px;
-  background: var(--tarjeta) center / cover no-repeat;
+  min-height: 0;
+  padding: 8px;
+  background: var(--tarjeta) center bottom / cover no-repeat;
   color: var(--texto);
   border: 0; border-bottom: 5px solid var(--c); border-radius: 16px;
   box-shadow: var(--sombra);
   font: inherit; text-align: left; cursor: pointer; overflow: hidden;
   transition: transform .12s ease;
 }
-.opcion.ancha { grid-column: 1 / -1; aspect-ratio: 2 / 1; }
+.opcion.ancha { grid-column: 1 / -1; }
 @media (min-width: 560px) { .opcion.ancha { grid-column: span 2; } }
 .opcion:active { transform: scale(.97); }
 .opcion:focus-visible { outline: 3px solid var(--c); outline-offset: 2px; }
@@ -75,7 +87,7 @@ main { max-width: 720px; margin: 0 auto; padding: 16px 16px calc(28px + env(safe
 /* Rótulo sobre la ilustración: fondo blanco translúcido para que la letra siempre se lea */
 .rotulo {
   display: block; max-width: 100%;
-  padding: 6px 10px 7px; border-radius: 10px;
+  padding: 5px 10px 6px; border-radius: 10px;
   background: rgba(255, 255, 255, .86);
   -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
   box-shadow: 0 1px 3px rgba(0, 0, 0, .08);

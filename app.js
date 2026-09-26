@@ -43,13 +43,13 @@ function inicio() {
   app.innerHTML = `
     <section class="saludo">
       <h2>¿Qué vas a construir?</h2>
-      <p>Escoge el trabajo y armamos el despiece conversando.</p>
+      <p>Escoge el trabajo y lo despiezamos conversando.</p>
     </section>
     <div class="mosaico">
       ${TRABAJOS.map((t, i) => `
         <button class="opcion${i === 0 ? ' ancha' : ''}" data-id="${t.id}"
                 style="--c:${t.color}; background-image:url(img/${t.id}.svg)">
-          <span class="rotulo"><strong>${t.nombre}</strong><small>${t.detalle}</small></span>
+          <span class="rotulo"><strong>${t.nombre}</strong></span>
         </button>`).join('')}
     </div>`;
 }

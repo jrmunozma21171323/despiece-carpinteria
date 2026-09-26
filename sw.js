@@ -1,5 +1,5 @@
 // Service worker: deja la app abriendo aunque no haya señal (el taller o la obra).
-const CACHE = 'despiece-v4';
+const CACHE = 'despiece-v5';
 const ARCHIVOS = [
   './', 'index.html', 'app.js', 'styles.css', 'manifest.webmanifest',
   'img/closet.svg', 'img/cocina.svg', 'img/bano.svg', 'img/puerta.svg', 'img/sala.svg', 'img/comedor.svg', 'img/cama.svg',

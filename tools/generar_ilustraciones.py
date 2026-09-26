@@ -5,16 +5,20 @@ import os
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "img")
 
 
-def piso(ancho):
-    lineas = "".join(f"M{x} 172v28" for x in range(40, ancho, 57))
-    return (f'<rect y="172" width="{ancho}" height="28" fill="#e3c39a"/>'
-            f'<path d="M0 172h{ancho}" stroke="#c9a57a" stroke-width="2"/>'
-            f'<path d="{lineas}M0 186h{ancho}" stroke="#d2b08a" stroke-width="1"/>')
+def piso(x0, ancho):
+    lineas = "".join(f"M{x} 172v28" for x in range(x0 + 40, x0 + ancho, 57))
+    return (f'<rect x="{x0}" y="172" width="{ancho}" height="28" fill="#e3c39a"/>'
+            f'<path d="M{x0} 172h{ancho}" stroke="#c9a57a" stroke-width="2"/>'
+            f'<path d="{lineas}M{x0} 186h{ancho}" stroke="#d2b08a" stroke-width="1"/>')
 
 
-def svg(ancho, pared, cuerpo):
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {ancho} 200">'
-            f'<rect width="{ancho}" height="200" fill="{pared}"/>{cuerpo}{piso(ancho)}</svg>')
+def svg(ancho, pared, cuerpo, margen=None):
+    # "margen": pared y piso extra a cada lado. Las tarjetas son más anchas que altas, así el dibujo
+    # llena el recuadro recortando solo pared sobrante, nunca el mueble.
+    m = margen if margen is not None else (25 if ancho == 200 else 40)
+    x0, w = -m, ancho + 2 * m
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{x0} 0 {w} 200">'
+            f'<rect x="{x0}" width="{w}" height="200" fill="{pared}"/>{cuerpo}{piso(x0, w)}</svg>')
 
 
 ILUSTRACIONES = {

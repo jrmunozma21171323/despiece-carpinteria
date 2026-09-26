@@ -24,6 +24,9 @@ en un formato que el depósito acepte para despachar.
 - Cada tarjeta lleva una ilustración tipo caricatura del mueble (`tools/generar_ilustraciones.py` → `img/*.svg`),
   con rótulo blanco translúcido para que la letra se lea. Closet ya no va resaltado en otro color;
   solo ocupa el ancho completo arriba porque son 7 tarjetas.
+- **El inicio cabe en una sola pantalla, sin desplazarse** (pedido del usuario: "que no dé la sensación de
+  información oculta"). El mosaico reparte el alto disponible; en la tarjeta va solo el nombre y el detalle
+  se ve al entrar. Las ilustraciones traen pared/piso de sobra a los lados para que nunca se corte el mueble.
 
 ## Etapas
 - [x] **Etapa 1**: PWA instalable, ícono, mosaico de 7 trabajos, pantalla por trabajo (placeholder).
