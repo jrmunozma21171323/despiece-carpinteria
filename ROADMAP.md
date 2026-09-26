@@ -14,7 +14,9 @@ en un formato que el depósito acepte para despachar.
   ImporMaderas usa **CutList** → la meta es exportar en un formato que CutList importe.
 - **Beta con 2 carpinteros reales** en campo; se ajusta con su uso.
 - Producto pensado para **comercializar**.
-- Ícono: dibujo plano derivado del closet de 3 cuerpos + línea de medida (ámbar), sobre azul petróleo.
+- Ícono v3 (2026-09-26, "que se vea viva"): mismo closet en naranja miel con cajones/tubos blancos,
+  flecha amarilla, fondo degradado turquesa → azul con halo. Nombre bajo el ícono: "Despiece"
+  (corto a propósito: "Despiece Carpintería" se corta en el lanzador); nombre completo en la app.
 - Paleta (2026-09-26, el usuario pidió "más viva, menos café"): azul petróleo `#0e6474` + ámbar `#f5a623`,
   fondo gris claro, y un color por trabajo (cocina naranja, baño azul, puerta verde, sala violeta,
   comedor rojo, cama rosa). La madera queda solo en el closet del ícono y la foto.
