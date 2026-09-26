@@ -1,0 +1,109 @@
+:root {
+  --fondo: #f6efe6;
+  --tarjeta: #ffffff;
+  --texto: #2b1b10;
+  --suave: #7a6453;
+  --madera: #c98a4b;
+  --nogal: #3a2415;
+  --ambar: #f2a922;
+  --borde: #e6d8c7;
+  --sombra: 0 1px 2px rgba(58, 36, 21, .08), 0 4px 14px rgba(58, 36, 21, .06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fondo: #1b120b;
+    --tarjeta: #2a1c12;
+    --texto: #f3e7d9;
+    --suave: #bca48d;
+    --borde: #3d2a1c;
+    --sombra: 0 1px 2px rgba(0, 0, 0, .4);
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.barra {
+  display: flex; align-items: center; gap: 12px;
+  padding: calc(14px + env(safe-area-inset-top)) 16px 14px;
+  background: linear-gradient(180deg, #56361f, var(--nogal));
+  color: #fbeedd;
+  position: sticky; top: 0; z-index: 5;
+}
+.logo { border-radius: 10px; display: block; }
+.barra h1 { margin: 0; font-size: 1.15rem; font-weight: 700; letter-spacing: .2px; }
+.barra .sub { margin: 2px 0 0; font-size: .82rem; color: #e2c7a6; }
+
+main { max-width: 720px; margin: 0 auto; padding: 16px 16px calc(28px + env(safe-area-inset-bottom)); }
+
+.saludo { margin: 4px 2px 14px; }
+.saludo h2 { margin: 0 0 4px; font-size: 1.35rem; }
+.saludo p { margin: 0; color: var(--suave); font-size: .95rem; }
+
+.mosaico {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (min-width: 560px) { .mosaico { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+.opcion {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between;
+  min-height: 132px; padding: 14px;
+  background: var(--tarjeta); color: var(--texto);
+  border: 1px solid var(--borde); border-radius: 16px; box-shadow: var(--sombra);
+  font: inherit; text-align: left; cursor: pointer;
+  transition: transform .12s ease, border-color .12s ease;
+}
+.opcion:active { transform: scale(.97); }
+.opcion:hover, .opcion:focus-visible { border-color: var(--madera); outline: none; }
+.opcion svg { width: 46px; height: 46px; color: var(--madera); }
+.opcion strong { font-size: 1.02rem; line-height: 1.2; margin-top: 10px; }
+.opcion small { color: var(--suave); font-size: .78rem; margin-top: 2px; }
+
+/* Tarjeta destacada del closet, con la foto */
+.opcion.destacada {
+  grid-column: 1 / -1;
+  flex-direction: row; align-items: center; gap: 14px;
+  min-height: 0; padding: 10px;
+}
+.opcion.destacada img {
+  width: 104px; height: 104px; object-fit: cover; border-radius: 12px; flex: none;
+  background: #fff;
+}
+.opcion.destacada strong { margin-top: 0; font-size: 1.15rem; }
+
+/* Pantalla de un tipo de trabajo */
+.volver {
+  background: none; border: 0; color: var(--madera); font: inherit; font-weight: 600;
+  padding: 6px 0; margin-bottom: 8px; cursor: pointer;
+}
+.cabeza { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.cabeza svg { width: 52px; height: 52px; color: var(--madera); flex: none; }
+.cabeza h2 { margin: 0; font-size: 1.4rem; }
+.cabeza p { margin: 2px 0 0; color: var(--suave); }
+
+.pasos { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.pasos li {
+  display: flex; gap: 12px; align-items: flex-start;
+  background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 14px; padding: 14px;
+}
+.pasos .n {
+  flex: none; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; font-weight: 700;
+  background: var(--ambar); color: #3a2415;
+}
+.pasos b { display: block; }
+.pasos span { color: var(--suave); font-size: .9rem; }
+.pronto {
+  margin-top: 16px; padding: 12px 14px; border-radius: 12px;
+  background: rgba(242, 169, 34, .14); color: var(--texto); font-size: .9rem;
+}
