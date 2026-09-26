@@ -39,6 +39,19 @@ en un formato que el depósito acepte para despachar.
         y barra "Escogiste: …". Tarjeta "Construye tu modelo" (próximamente).
   - [x] **Vista 3D** del modelo escogido (pedido del usuario: "que cliente y carpintero estén seguros de lo
         que van a instalar"): girar, acercar, cajones que entran y salen, vista de frente, "Usar este modelo".
+  - [x] **¿Cabe la ropa?** (pedido del usuario: pantalones y camisas planchadas sin arrugarse, vestido
+        que no quede doblado). Cada tubo tiene un "uso" (camisas, chaquetas, pantalones doblados/largos,
+        vestidos cortos/largos) con su largo; se mide el espacio libre bajo el tubo y se marca ✔ o "faltan X cm".
+        **Ajustar** reorganiza el cuerpo (menos cajones, zapatero más bajo, quitar tubo/entrepaño que estorba).
+        En el 3D la ropa cuelga a su largo real y en **rojo** si no cabe. También se revisa el fondo (mín. 55 cm).
+        Largos usados (a validar con carpinteros): camisas 90, chaquetas 100, pantalón doblado 70,
+        pantalón largo 115, vestido corto 110, vestido largo/abrigo 155 cm; + 3 cm de holgura.
+  - [x] **Puertas**: sin puertas / batientes (abren de frente, con puertas aparte para el maletero) /
+        corredizas (se deslizan a los lados, con rieles y perfiles). Se ven, abren y cierran en el 3D.
+        Con puertas, los cajones van metidos 3,5 cm.
+  - [x] **Color**: Blanco, Roble claro, Cedro, Wengué (círculos), aplicado al 3D al instante.
+  - [x] **Plano con medidas** al final (pedido del usuario, con imagen de referencia): ancho de cada cuerpo,
+        altura de cada espacio, espacio libre bajo cada tubo (verde/rojo), cajones, totales y fondo.
   - [ ] Construye tu modelo.
   - [ ] Paso 2: menú de materiales.
   - Decisiones: el modelo = **distribución interior**; las puertas se preguntan aparte. Las medidas de cada
@@ -67,5 +80,6 @@ en un formato que el depósito acepte para despachar.
   De ahí salen el dibujo de la tarjeta (`dibujoFrontal`), el 3D (`closet/visor3d.js`) y, más adelante, el despiece.
 - 3D con Three.js 0.170 desde jsDelivr (import map en `index.html`); se carga solo al abrir el visor.
   La textura de melamina se dibuja en código (sin imágenes) y la veta va a escala por el lado largo de cada pieza.
-- Rutas: `#closet`, `#closet/modelos`, `#closet/3d/<modelo>`. El modelo escogido se guarda en `localStorage` (`despiece.closet`).
+- Rutas: `#closet`, `#closet/modelos`, `#closet/3d/<modelo>`, `#closet/plano`. El diseño (modelo, cuerpos ajustados, puerta, color)
+  se guarda en `localStorage` (`despiece.closet`). `closet/plano.js` dibuja el plano con cotas.
 - Vista previa local: config `despiece` (python http.server, puerto 5173).

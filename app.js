@@ -1,9 +1,12 @@
 // Despiece Carpintería — mosaico de trabajos y, por ahora, el flujo del Closet.
 // Cada trabajo tendrá sus modelos base + "Construye tu modelo", su menú de materiales
 // y la conversación por voz que arma el despiece.
-import { MODELOS, modeloPorId, dibujoFrontal } from './closet/modelos.js';
+import {
+  MODELOS, USOS, COLORES, PUERTAS, FONDO_MIN,
+  modeloPorId, dibujoFrontal, revisarTubos, cambiarUso, ajustarTubo, necesita, copiar,
+} from './closet/modelos.js';
 
-const VERSION = 7;   // igual al número de CACHE en sw.js: se muestra en la app para saber qué versión tiene cada celular
+const VERSION = 8;   // igual al número de CACHE en sw.js: se muestra en la app para saber qué versión tiene cada celular
 
 const s = (paths) =>
   `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
@@ -70,13 +73,15 @@ const PASOS = [
 
 function trabajo(t) {
   const esCloset = t.id === 'closet';
-  const modelo = esCloset && modeloPorId(leer('closet')?.modelo);
+  const cfg = esCloset && leer('closet');
+  const modelo = cfg && cfg.diseno && modeloPorId(cfg.modelo);
   const paso1 = !esCloset ? '' : modelo
     ? `<li class="hecho"><span class="n">✔</span>
          <div class="paso-cuerpo">
-           <span class="miniatura">${dibujoFrontal(modelo)}</span>
-           <div><b>${modelo.nombre}</b><span>Modelo escogido</span>
-             <span class="acciones"><button class="enlace" data-ir="#closet/3d/${modelo.id}">Ver en 3D</button>
+           <span class="miniatura">${dibujoFrontal(cfg.diseno)}</span>
+           <div><b>${modelo.nombre}</b><span>${resumenDiseno(cfg)}</span>
+             <span class="acciones"><button class="enlace" data-ir="#closet/3d/${modelo.id}">3D</button>
+             <button class="enlace" data-ir="#closet/plano">Medidas</button>
              <button class="enlace" data-ir="#closet/modelos">Cambiar</button></span></div></div></li>`
     : `<li class="activo"><button class="paso-boton" data-ir="#closet/modelos"><span class="n">1</span>
          <div><b>${PASOS[0][0]}</b><span>${PASOS[0][1]}</span></div><span class="flecha">›</span></button></li>`;
@@ -130,65 +135,189 @@ function pintarBarra() {
   app.querySelectorAll('.modelo').forEach(b => b.setAttribute('aria-pressed', b.dataset.modelo === seleccion));
 }
 
-// ---------- Closet: visor 3D ----------
+// ---------- Closet: diseño en 3D (ropa, puertas, color) ----------
+// "borrador" = lo que se está diseñando en la pantalla 3D; se guarda al tocar "Usar este diseño".
 let visor = null;
+let borrador = null;
+let pestana = 'ropa';
+let aviso = '';
+
+const m2 = n => n.toFixed(2).replace('.', ',');
+const cm = n => Math.round(n * 100) + ' cm';
+const nombreColor = id => COLORES.find(c => c.id === id)?.nombre || '';
+const nombrePuerta = id => PUERTAS.find(p => p.id === id)?.nombre || '';
+
+function resumenDiseno(cfg) {
+  const puerta = cfg.puerta && cfg.puerta !== 'ninguna' ? `Puertas ${nombrePuerta(cfg.puerta).toLowerCase()}` : 'Sin puertas';
+  return `${puerta} · ${nombreColor(cfg.color)}${cfg.ajustado ? ' · ajustado a la ropa' : ''}`;
+}
+
+function borradorPara(id) {
+  const m = modeloPorId(id);
+  const cfg = leer('closet');
+  if (cfg?.modelo === id && cfg.diseno) return copiar(cfg);
+  return { modelo: id, diseno: { medidas: copiar(m.medidas), cuerpos: copiar(m.cuerpos) }, color: 'cedro', puerta: 'ninguna', ajustado: false };
+}
 
 async function closet3d(id) {
   const m = modeloPorId(id);
   if (!m) { location.hash = '#closet/modelos'; return; }
-  const { ancho, alto, fondo } = m.medidas;
-  const f = n => n.toFixed(2).replace('.', ',');
-  const conCajones = m.cuerpos.some(c => c.elementos.some(e => e.t === 'cajones'));
+  if (borrador?.modelo !== id) { borrador = borradorPara(id); pestana = 'ropa'; aviso = ''; }
+  const { ancho, alto, fondo } = borrador.diseno.medidas;
   app.innerHTML = `
     <div class="pantalla">
       <div class="fila-titulo"><button class="volver" data-ir="#closet/modelos">‹ Modelos</button><b>${m.nombre}</b></div>
       <div class="visor" data-visor>
         <p class="cargando">Armando el closet en 3D…</p>
-        <p class="pista">Arrastra para girar · pellizca para acercar${conCajones ? ' · toca un cajón' : ''}</p>
+        <span class="medidas-chip">${m2(ancho)} × ${m2(alto)} × ${m2(fondo)} m</span>
+        <div class="flotantes">
+          <button data-accion="frente">Frente</button>
+          <button data-accion="puertas" hidden>Abrir puertas</button>
+          <button data-accion="cajones" hidden>Cajones</button>
+        </div>
+        <p class="pista">Arrastra para girar · toca un cajón o una puerta</p>
       </div>
-      <div class="controles3d">
-        ${conCajones ? '<button class="secundario" data-accion="cajones">Abrir cajones</button>' : ''}
-        <button class="secundario" data-accion="frente">Vista de frente</button>
+      <div class="pestanas" role="tablist">
+        <button role="tab" data-pestana="ropa">👕 Ropa</button>
+        <button role="tab" data-pestana="puertas">🚪 Puertas</button>
+        <button role="tab" data-pestana="color">🎨 Color</button>
       </div>
-      <p class="medidas-ref">Medidas de referencia: ${f(ancho)} ancho × ${f(alto)} alto × ${f(fondo)} fondo (m). Luego las ajustamos a las tuyas.</p>
-      <button class="primario ancho" data-accion="confirmar" data-modelo3d="${m.id}">✔ Usar este modelo</button>
+      <div class="panel" data-panel></div>
+      <button class="primario ancho" data-accion="confirmar">✔ Usar este diseño</button>
     </div>`;
+  pintarPanel();
   const caja = app.querySelector('[data-visor]');
   try {
     const { montarVisor } = await import('./closet/visor3d.js');
     if (!caja.isConnected) return;   // ya se fue de la pantalla mientras cargaba
-    visor = montarVisor(caja, m);
+    visor = montarVisor(caja, borrador.diseno, { color: borrador.color, puerta: borrador.puerta });
     caja.querySelector('.cargando').remove();
+    pintarFlotantes();
   } catch (err) {
     console.error(err);
     caja.querySelector('.cargando').textContent = 'No se pudo cargar el 3D. Revisa la conexión a internet e intenta de nuevo.';
   }
 }
 
-// ---------- Rutas: #closet, #closet/modelos, #closet/3d/<modelo> ----------
+function pintarFlotantes() {
+  if (!visor) return;
+  const bp = app.querySelector('[data-accion="puertas"]'), bc = app.querySelector('[data-accion="cajones"]');
+  bp.hidden = !visor.hayPuertas;
+  bp.textContent = visor.puertasAbiertas ? 'Cerrar puertas' : 'Abrir puertas';
+  bc.hidden = !visor.hayCajones;
+}
+
+function pintarPanel() {
+  const panel = app.querySelector('[data-panel]');
+  if (!panel) return;
+  app.querySelectorAll('[data-pestana]').forEach(b => b.setAttribute('aria-selected', b.dataset.pestana === pestana));
+  if (pestana === 'ropa') {
+    const tubos = revisarTubos(borrador.diseno);
+    const { fondo } = borrador.diseno.medidas;
+    const fondoInt = fondo - 0.006;
+    panel.innerHTML = `
+      ${aviso ? `<p class="aviso">✔ ${aviso}</p>` : ''}
+      ${tubos.length ? tubos.map(t => `
+        <div class="fila-ropa ${t.cabe ? 'ok' : 'mal'}">
+          <div class="donde"><b>Cuerpo ${t.ci + 1}${t.total > 1 ? (t.k === 0 ? ' · arriba' : ' · abajo') : ''}</b>
+            <small>${t.cabe ? `${cm(t.espacio)} libres` : `faltan ${cm(t.falta)}`}</small></div>
+          <select data-uso="${t.ci}-${t.k}" aria-label="Qué se cuelga en el cuerpo ${t.ci + 1}">
+            ${Object.entries(USOS).map(([k, u]) => `<option value="${k}" ${k === t.uso ? 'selected' : ''}>${u.nombre} (${cm(necesita(k))})</option>`).join('')}
+          </select>
+          ${t.cabe ? '<span class="estado">✔ Cabe</span>' : `<button class="ajustar" data-ajustar="${t.ci}-${t.k}">Ajustar</button>`}
+        </div>`).join('') : '<p class="nota">Este modelo no tiene tubos para colgar.</p>'}
+      <p class="nota">${fondoInt >= FONDO_MIN ? '✔' : '⚠️'} Fondo interior ${cm(fondoInt)}: ${fondoInt >= FONDO_MIN ? 'los ganchos caben sin rozar' : 'muy poco para ganchos'} (mín. ${cm(FONDO_MIN)}).</p>`;
+  } else if (pestana === 'puertas') {
+    panel.innerHTML = `<div class="opciones">${PUERTAS.map(p => `
+      <button class="opcion-puerta" data-puerta="${p.id}" aria-pressed="${p.id === borrador.puerta}">
+        ${ICONO_PUERTA[p.id]}<b>${p.nombre}</b><small>${p.detalle}</small>
+      </button>`).join('')}</div>`;
+  } else {
+    panel.innerHTML = `<div class="colores">${COLORES.map(c => `
+      <button class="color" data-color="${c.id}" aria-pressed="${c.id === borrador.color}">
+        <span class="muestra" style="--base:${c.base};--veta:${c.oscura}"></span><small>${c.nombre}</small>
+      </button>`).join('')}</div>`;
+  }
+}
+
+const ICONO_PUERTA = {
+  ninguna: '<svg viewBox="0 0 48 40"><rect x="6" y="4" width="36" height="32" rx="2" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M24 4v32M6 14h36" stroke="currentColor" stroke-width="2"/></svg>',
+  batientes: '<svg viewBox="0 0 48 40"><rect x="6" y="4" width="36" height="32" rx="2" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M24 4v32" stroke="currentColor" stroke-width="2"/><path d="M6 4l-4 6v24l4 2M42 4l4 6v24l-4 2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="20" cy="20" r="1.6" fill="currentColor"/><circle cx="28" cy="20" r="1.6" fill="currentColor"/></svg>',
+  corredizas: '<svg viewBox="0 0 48 40"><rect x="6" y="4" width="36" height="32" rx="2" fill="none" stroke="currentColor" stroke-width="2.4"/><rect x="8" y="6" width="18" height="28" fill="currentColor" opacity=".25"/><rect x="22" y="6" width="18" height="28" fill="currentColor" opacity=".45"/><path d="M14 20h-6m0 0l3-3m-3 3l3 3M34 20h6m0 0l-3-3m3 3l-3 3" stroke="currentColor" stroke-width="2" fill="none"/></svg>',
+};
+
+// ---------- Closet: plano con medidas ----------
+async function closetPlano() {
+  const cfg = leer('closet');
+  if (!cfg?.diseno) { location.hash = '#closet'; return; }
+  const { planoConMedidas } = await import('./closet/plano.js');
+  const m = modeloPorId(cfg.modelo);
+  app.innerHTML = `
+    <div class="pantalla">
+      <div class="fila-titulo"><button class="volver" data-ir="#closet/3d/${cfg.modelo}">‹ 3D</button><b>Plano con medidas</b></div>
+      <div class="plano">${planoConMedidas(cfg.diseno)}</div>
+      <p class="leyenda"><b>${m.nombre}</b> · ${resumenDiseno(cfg)}<br>
+        <span class="ok">Verde</span>: espacio libre para colgar, cabe la ropa · <span class="mal">Rojo</span>: no cabe</p>
+      <button class="primario ancho" data-ir="#closet">✔ Listo</button>
+    </div>`;
+}
+
+// ---------- Rutas: #closet, #closet/modelos, #closet/3d/<modelo>, #closet/plano ----------
 function mostrar() {
   visor?.destruir(); visor = null;
   const [id, sub, arg] = location.hash.slice(1).split('/');
   const t = TRABAJOS.find(x => x.id === id);
   if (id === 'closet' && sub === 'modelos') modelosCloset();
   else if (id === 'closet' && sub === '3d') closet3d(arg);
+  else if (id === 'closet' && sub === 'plano') closetPlano();
   else t ? trabajo(t) : inicio();
   app.scrollTop = 0;
 }
 
 app.addEventListener('click', e => {
-  const b = e.target.closest('[data-id], [data-ir], [data-modelo], [data-accion]');
+  const b = e.target.closest('[data-id], [data-ir], [data-modelo], [data-accion], [data-pestana], [data-ajustar], [data-puerta], [data-color]');
   if (!b) return;
-  if (b.dataset.id) location.hash = b.dataset.id;
-  else if (b.dataset.ir) location.hash = b.dataset.ir;
-  else if (b.dataset.modelo) { seleccion = b.dataset.modelo; pintarBarra(); }
-  else if (b.dataset.accion === 'cajones' && visor) b.textContent = visor.alternarCajones() ? 'Cerrar cajones' : 'Abrir cajones';
-  else if (b.dataset.accion === 'frente' && visor) visor.vistaFrontal();
-  else if (b.dataset.accion === 'confirmar') {
-    guardar('closet', { ...(leer('closet') || {}), modelo: b.dataset.modelo3d });
-    seleccion = b.dataset.modelo3d;
-    location.hash = '#closet';
+  const d = b.dataset;
+  if (d.id) location.hash = d.id;
+  else if (d.ir) location.hash = d.ir;
+  else if (d.modelo) { seleccion = d.modelo; pintarBarra(); }
+  else if (d.pestana) {
+    pestana = d.pestana; aviso = ''; pintarPanel();
+    if (pestana === 'ropa' && visor?.hayPuertas && !visor.puertasAbiertas) { visor.abrirPuertas(true); setTimeout(pintarFlotantes, 50); }
   }
+  else if (d.ajustar) {
+    const [ci, k] = d.ajustar.split('-').map(Number);
+    const r = ajustarTubo(borrador.diseno, ci, k);
+    if (!r) { aviso = ''; alert('Ni despejando todo el cuerpo cabe: hay que subir el tubo o colgar esa ropa en otro cuerpo.'); return; }
+    borrador.diseno = r.diseno; borrador.ajustado = true;
+    aviso = `Cuerpo ${ci + 1}: ${r.cambios.join(', ') || 'listo'}.`;
+    visor?.actualizar(borrador.diseno);
+    if (visor?.hayPuertas) visor.abrirPuertas(true);
+    pintarPanel(); pintarFlotantes();
+  }
+  else if (d.puerta) {
+    borrador.puerta = d.puerta; visor?.ponerPuerta(d.puerta); pintarPanel(); pintarFlotantes();
+  }
+  else if (d.color) { borrador.color = d.color; visor?.ponerColor(d.color); pintarPanel(); }
+  else if (d.accion === 'cajones' && visor) { visor.alternarCajones(); setTimeout(pintarFlotantes, 450); }
+  else if (d.accion === 'puertas' && visor) { visor.alternarPuertas(); setTimeout(pintarFlotantes, 50); }
+  else if (d.accion === 'frente' && visor) visor.vistaFrontal();
+  else if (d.accion === 'confirmar') {
+    guardar('closet', borrador);
+    seleccion = borrador.modelo;
+    location.hash = '#closet/plano';
+  }
+});
+
+app.addEventListener('change', e => {
+  const s = e.target.closest('[data-uso]');
+  if (!s) return;
+  const [ci, k] = s.dataset.uso.split('-').map(Number);
+  borrador.diseno = cambiarUso(borrador.diseno, ci, k, s.value);
+  aviso = '';
+  visor?.actualizar(borrador.diseno);
+  if (visor?.hayPuertas) visor.abrirPuertas(true);
+  pintarPanel(); pintarFlotantes();
 });
 
 window.addEventListener('hashchange', mostrar);
