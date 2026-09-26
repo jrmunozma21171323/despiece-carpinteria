@@ -2,7 +2,8 @@
 // Arrastrar = girar, pellizcar = acercar, tocar un cajón o una puerta = abrir/cerrar.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { ESPESOR as T, ZOCALO as Z, USOS, repartirCuerpos, revisarTubos, colorPorId } from './modelos.js';
+import { ESPESOR as T, ZOCALO as Z, repartirCuerpos, colorPorId } from './modelos.js';
+import { vestirCloset, liberarRopa } from './ropa3d.js';
 
 const FONDO_ESCENA = 0xefe2cc;   // mismo beige de la app
 const APERTURA = 0.36;           // cuánto sale un cajón abierto (m)
@@ -59,29 +60,6 @@ function cajaConVeta(w, h, d) {
     }
   }
   return geo;
-}
-
-// ---------- Siluetas de ropa (planas, de perfil como se ve colgada en un closet) ----------
-const COLORES_ROPA = {
-  camisa: [0xffffff, 0x9cc3e6, 0xdfe7ef, 0x6f8fb3, 0xf2d6c9],
-  pantalon: [0x3a4450, 0x2c3440, 0x6b5a48, 0x1f2a36, 0x8a8f96],
-  vestido: [0xd6408e, 0x7e57c2, 0xe0474c, 0x1e88e5, 0xf5a623],
-};
-function siluetaPrenda(forma, largo) {
-  const s = new THREE.Shape();
-  const L = largo - 0.05;   // debajo del gancho
-  if (forma === 'camisa') {
-    s.moveTo(-0.02, -0.05); s.lineTo(-0.20, -0.09); s.lineTo(-0.22, -0.16); s.lineTo(-0.19, -L);
-    s.lineTo(0.19, -L); s.lineTo(0.22, -0.16); s.lineTo(0.20, -0.09); s.lineTo(0.02, -0.05);
-  } else if (forma === 'pantalon') {
-    s.moveTo(-0.17, -0.05); s.lineTo(-0.16, -L); s.lineTo(-0.01, -L); s.lineTo(0, -L * 0.45);
-    s.lineTo(0.01, -L); s.lineTo(0.16, -L); s.lineTo(0.17, -0.05);
-  } else {
-    s.moveTo(-0.02, -0.05); s.lineTo(-0.16, -0.09); s.lineTo(-0.14, -0.35);
-    s.lineTo(-0.25, -L); s.lineTo(0.25, -L); s.lineTo(0.14, -0.35); s.lineTo(0.16, -0.09); s.lineTo(0.02, -0.05);
-  }
-  s.closePath();
-  return new THREE.ShapeGeometry(s);
 }
 
 export function montarVisor(contenedor, disenoInicial, { color = 'cedro', puerta = 'ninguna', ropa = true } = {}) {
@@ -253,40 +231,14 @@ export function montarVisor(contenedor, disenoInicial, { color = 'cedro', puerta
     });
   }
 
-  // --- Ropa colgada: a su largo real; en rojo si no cabe ---
+  // --- Ropa y objetos (ropa3d.js): prendas a su largo real, rojizas si no caben ---
   const ropaGrupo = new THREE.Group();
   escena.add(ropaGrupo);
-  const matsRopa = [];
   function construirRopa() {
-    vaciar(ropaGrupo);
-    matsRopa.forEach(m => m.dispose()); matsRopa.length = 0;
-    const cuerpos = repartirCuerpos(diseno);
-    const matGancho = new THREE.MeshStandardMaterial({ color: 0x8a6a4a, roughness: 0.6 });
-    const matNoCabe = new THREE.MeshStandardMaterial({ color: 0xe0474c, roughness: 0.8, side: THREE.DoubleSide, transparent: true, opacity: 0.9 });
-    matsRopa.push(matGancho, matNoCabe);
-    for (const t of revisarTubos(diseno)) {
-      const { x0, x1 } = cuerpos[t.ci];
-      const uso = USOS[t.uso];
-      const geo = siluetaPrenda(uso.forma, uso.largo);
-      const paleta = COLORES_ROPA[uso.forma];
-      const n = Math.max(2, Math.floor((x1 - x0 - 0.08) / 0.075));
-      const paso = (x1 - x0 - 0.08) / (n - 1);
-      for (let i = 0; i < n; i++) {
-        const mat = t.cabe
-          ? new THREE.MeshStandardMaterial({ color: paleta[(i * 3 + t.ci) % paleta.length], roughness: 0.85, side: THREE.DoubleSide })
-          : matNoCabe;
-        if (t.cabe) matsRopa.push(mat);
-        const prenda = new THREE.Mesh(geo, mat);
-        const px = x(x0 + 0.04 + i * paso);
-        prenda.position.set(px, yb + t.y, 0);
-        prenda.rotation.y = Math.PI / 2 + (((i * 37) % 7) - 3) * 0.03;   // de perfil, un poco desordenadas
-        prenda.castShadow = true;
-        ropaGrupo.add(prenda);
-        const gancho = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.012, 0.40), matGancho);
-        gancho.position.set(px, yb + t.y - 0.05, 0);
-        ropaGrupo.add(gancho);
-      }
-    }
+    // las geometrías compartidas se reutilizan; solo se liberan las propias de cada pieza
+    ropaGrupo.traverse(o => { if (o.geometry && !o.geometry.userData.compartida) o.geometry.dispose(); });
+    ropaGrupo.clear();
+    vestirCloset(ropaGrupo, diseno, { yb, x });
     ropaGrupo.visible = verRopa;
   }
   let verRopa = ropa;
@@ -455,6 +407,7 @@ export function montarVisor(contenedor, disenoInicial, { color = 'cedro', puerta
         if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose());
       });
       textura?.dispose();
+      liberarRopa();
       renderer.dispose();
       renderer.domElement.remove();
     },

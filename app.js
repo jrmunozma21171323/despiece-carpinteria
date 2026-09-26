@@ -6,7 +6,7 @@ import {
   modeloPorId, dibujoFrontal, revisarTubos, cambiarUso, ajustarTubo, necesita, copiar,
 } from './closet/modelos.js';
 
-const VERSION = 8;   // igual al número de CACHE en sw.js: se muestra en la app para saber qué versión tiene cada celular
+const VERSION = 9;   // igual al número de CACHE en sw.js: se muestra en la app para saber qué versión tiene cada celular
 
 const s = (paths) =>
   `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;

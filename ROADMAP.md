@@ -43,7 +43,10 @@ en un formato que el depósito acepte para despachar.
         que no quede doblado). Cada tubo tiene un "uso" (camisas, chaquetas, pantalones doblados/largos,
         vestidos cortos/largos) con su largo; se mide el espacio libre bajo el tubo y se marca ✔ o "faltan X cm".
         **Ajustar** reorganiza el cuerpo (menos cajones, zapatero más bajo, quitar tubo/entrepaño que estorba).
-        En el 3D la ropa cuelga a su largo real y en **rojo** si no cabe. También se revisa el fondo (mín. 55 cm).
+        En el 3D la ropa cuelga a su largo real y **rojiza** si no cabe. Prendas v2 (usuario: "las prendas se ven muy feas",
+        foto de referencia): ganchos de madera, camisas con mangas/tapeta (rayas y cuadros), sacos con solapa, pantalón
+        doblado sobre barra, vestidos entallados, colores sobrios, en abanico; + ropa doblada, cajas en maletero y
+        zapatos en zapatero (). También se revisa el fondo (mín. 55 cm).
         Largos usados (a validar con carpinteros): camisas 90, chaquetas 100, pantalón doblado 70,
         pantalón largo 115, vestido corto 110, vestido largo/abrigo 155 cm; + 3 cm de holgura.
   - [x] **Puertas**: sin puertas / batientes (abren de frente, con puertas aparte para el maletero) /
