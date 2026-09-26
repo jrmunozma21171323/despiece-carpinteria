@@ -20,7 +20,7 @@ en un formato que el depósito acepte para despachar.
 ## Etapas
 - [x] **Etapa 1**: PWA instalable, ícono, mosaico de 7 trabajos, pantalla por trabajo (placeholder).
 - [~] **Etapa 1b**: publicada en GitHub Pages → https://jrmunozma21171323.github.io/despiece-carpinteria/
-  Falta: instalarla y probarla en un celular real (Android + iPhone).
+  ✔ Instalada en Android (Samsung A17, 2026-09-26). Falta: validar cómo se ve y probar en iPhone.
   **Regla del usuario:** no se trabaja lo de adentro (etapa 2+) hasta cerrar la PWA.
 - [ ] **Etapa 2**: menú de materiales + 5 modelos base del Closet (con dibujo de cada uno).
 - [ ] **Etapa 3**: motor de despiece del Closet (reglas → piezas, cantos, tableros, herrajes).
