@@ -41,5 +41,5 @@ en un formato que el depósito acepte para despachar.
 - Publicación: repo público `jrmunozma21171323/despiece-carpinteria`, GitHub Pages desde `main` (raíz). Cada `git push` republica en ~1 min.
 - Al cambiar archivos estáticos, subir la versión de `CACHE` en `sw.js` para que los celulares tomen lo nuevo.
 - Estático: `index.html`, `styles.css`, `app.js`, `sw.js`, `manifest.webmanifest`, `icons/`, `img/`.
-- Iconos generados con PIL (script en el scratchpad de la sesión del 2026-09-26; regenerable).
+- Íconos: `python tools/generar_iconos.py` (PIL) los regenera en `icons/`.
 - Vista previa local: config `despiece` (python http.server, puerto 5173).
