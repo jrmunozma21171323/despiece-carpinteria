@@ -5,9 +5,10 @@
 const s = (paths) =>
   `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
 
+// El primero (Closet) ocupa todo el ancho del mosaico: son 7 y así no queda uno suelto.
 const TRABAJOS = [
   {
-    id: 'closet', color: '#0e6474', nombre: 'Closet', detalle: 'Cuerpos, entrepaños, tubos y cajones', foto: 'img/closet.jpg',
+    id: 'closet', color: '#0e6474', nombre: 'Closet', detalle: 'Cuerpos, entrepaños, tubos y cajones',
     icono: s('<rect x="7" y="5" width="34" height="37" rx="1.5"/><path d="M18.3 5v37M29.7 5v37M7 12h34M9 17h7.5M31.5 17h7.5M20 26h7.5M7 30h11.3M29.7 30H41M7 36h11.3M29.7 36H41M5 42h38"/>'),
   },
   {
@@ -39,21 +40,16 @@ const TRABAJOS = [
 const app = document.getElementById('app');
 
 function inicio() {
-  const [closet, ...resto] = TRABAJOS;
   app.innerHTML = `
     <section class="saludo">
       <h2>¿Qué vas a construir?</h2>
       <p>Escoge el trabajo y armamos el despiece conversando.</p>
     </section>
     <div class="mosaico">
-      <button class="opcion destacada" data-id="${closet.id}" style="--c:${closet.color}">
-        <img src="${closet.foto}" alt="Closet de tres cuerpos" width="104" height="104">
-        <span><strong>${closet.nombre}</strong><br><small>${closet.detalle}</small><br><span class="etiqueta">El más pedido</span></span>
-      </button>
-      ${resto.map(t => `
-        <button class="opcion" data-id="${t.id}" style="--c:${t.color}">
-          <span class="chip">${t.icono}</span>
-          <span><strong>${t.nombre}</strong><br><small>${t.detalle}</small></span>
+      ${TRABAJOS.map((t, i) => `
+        <button class="opcion${i === 0 ? ' ancha' : ''}" data-id="${t.id}"
+                style="--c:${t.color}; background-image:url(img/${t.id}.svg)">
+          <span class="rotulo"><strong>${t.nombre}</strong><small>${t.detalle}</small></span>
         </button>`).join('')}
     </div>`;
 }
@@ -62,6 +58,7 @@ function trabajo(t) {
   app.innerHTML = `
     <div style="--c:${t.color}">
     <button class="volver" data-volver>‹ Volver</button>
+    <div class="portada" style="background-image:url(img/${t.id}.svg)" role="img" aria-label="${t.nombre}"></div>
     <div class="cabeza">
       <span class="chip">${t.icono}</span>
       <div><h2>${t.nombre}</h2><p>${t.detalle}</p></div>

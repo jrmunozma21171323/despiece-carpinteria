@@ -1,36 +1,31 @@
+/* Tema claro fijo: en celulares con modo oscuro la app se veía negra.
+   El fondo es beige madera en todos los teléfonos. */
 :root {
-  --fondo: #f2f5f7;
+  color-scheme: light;
+  --fondo: #efe2cc;
   --tarjeta: #ffffff;
-  --texto: #17262c;
-  --suave: #5a6b73;
+  --texto: #1f1a14;
+  --suave: #5e5145;
   --petroleo: #0e6474;
   --petroleo-osc: #093e4a;
   --ambar: #f5a623;
-  --borde: #e0e7ea;
-  --sombra: 0 1px 2px rgba(9, 62, 74, .08), 0 6px 18px rgba(9, 62, 74, .07);
-  --mezcla: #ffffff; /* base con la que se aclara el color de cada trabajo */
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --fondo: #0f171b;
-    --tarjeta: #18242a;
-    --texto: #eef4f6;
-    --suave: #9fb2ba;
-    --borde: #26363d;
-    --sombra: 0 1px 2px rgba(0, 0, 0, .45);
-    --mezcla: #18242a;
-  }
+  --borde: #e2d2b8;
+  --sombra: 0 1px 2px rgba(90, 60, 30, .10), 0 6px 16px rgba(90, 60, 30, .10);
 }
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
-  background: var(--fondo);
   color: var(--texto);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   min-height: 100vh;
   -webkit-tap-highlight-color: transparent;
+  /* beige con una veta suave de madera */
+  background-color: var(--fondo);
+  background-image:
+    repeating-linear-gradient(92deg, rgba(150, 100, 50, .045) 0 2px, transparent 2px 11px),
+    repeating-linear-gradient(88deg, rgba(150, 100, 50, .035) 0 1px, transparent 1px 23px);
 }
 
 .barra {
@@ -58,56 +53,56 @@ main { max-width: 720px; margin: 0 auto; padding: 16px 16px calc(28px + env(safe
 }
 @media (min-width: 560px) { .mosaico { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
-/* Cada trabajo trae su color en --c */
+/* Tarjeta: la ilustración llena el recuadro (misma proporción que el dibujo: 1:1, la ancha 2:1).
+   Cada trabajo trae su color en --c. */
 .opcion {
-  display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between;
-  min-height: 138px; padding: 14px;
-  background: var(--tarjeta); color: var(--texto);
-  border: 1px solid var(--borde); border-bottom: 4px solid var(--c); border-radius: 16px;
+  position: relative;
+  display: flex; align-items: flex-start;
+  aspect-ratio: 1 / 1;
+  padding: 10px;
+  background: var(--tarjeta) center / cover no-repeat;
+  color: var(--texto);
+  border: 0; border-bottom: 5px solid var(--c); border-radius: 16px;
   box-shadow: var(--sombra);
-  font: inherit; text-align: left; cursor: pointer;
-  transition: transform .12s ease, box-shadow .12s ease;
+  font: inherit; text-align: left; cursor: pointer; overflow: hidden;
+  transition: transform .12s ease;
 }
+.opcion.ancha { grid-column: 1 / -1; aspect-ratio: 2 / 1; }
+@media (min-width: 560px) { .opcion.ancha { grid-column: span 2; } }
 .opcion:active { transform: scale(.97); }
 .opcion:focus-visible { outline: 3px solid var(--c); outline-offset: 2px; }
-.chip {
-  display: grid; place-items: center;
-  width: 56px; height: 56px; border-radius: 14px;
-  background: color-mix(in srgb, var(--c) 16%, var(--mezcla));
-  color: var(--c);
-}
-.chip svg { width: 38px; height: 38px; }
-.opcion strong { font-size: 1.02rem; line-height: 1.2; margin-top: 10px; }
-.opcion small { color: var(--suave); font-size: .78rem; margin-top: 2px; }
 
-/* Tarjeta destacada del closet, con la foto */
-.opcion.destacada {
-  grid-column: 1 / -1;
-  flex-direction: row; align-items: center; gap: 14px;
-  min-height: 0; padding: 10px;
-  background: linear-gradient(135deg, #13798b, var(--petroleo-osc));
-  border: 0; color: #fff;
+/* Rótulo sobre la ilustración: fondo blanco translúcido para que la letra siempre se lea */
+.rotulo {
+  display: block; max-width: 100%;
+  padding: 6px 10px 7px; border-radius: 10px;
+  background: rgba(255, 255, 255, .86);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+  border-left: 4px solid var(--c);
 }
-.opcion.destacada img {
-  width: 104px; height: 104px; object-fit: cover; border-radius: 12px; flex: none;
-  background: #fff;
-}
-.opcion.destacada strong { margin-top: 0; font-size: 1.2rem; }
-.opcion.destacada small { color: #cfe7ec; }
-.etiqueta {
-  display: inline-block; margin-top: 8px; padding: 3px 10px; border-radius: 999px;
-  background: var(--ambar); color: #3a2400; font-size: .75rem; font-weight: 700;
-}
+.opcion.ancha .rotulo { max-width: 46%; }
+.opcion strong { display: block; font-size: 1rem; line-height: 1.2; }
+.opcion small { display: block; color: var(--suave); font-size: .74rem; line-height: 1.25; margin-top: 2px; }
 
 /* Pantalla de un tipo de trabajo */
 .volver {
   background: none; border: 0; color: var(--petroleo); font: inherit; font-weight: 600;
   padding: 6px 0; margin-bottom: 8px; cursor: pointer;
 }
-@media (prefers-color-scheme: dark) { .volver { color: #5fc3d4; } }
+.portada {
+  aspect-ratio: 2 / 1; border-radius: 16px; margin-bottom: 14px;
+  background: center / cover no-repeat; box-shadow: var(--sombra);
+  border-bottom: 5px solid var(--c);
+}
 .cabeza { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-.cabeza .chip { width: 64px; height: 64px; flex: none; }
-.cabeza .chip svg { width: 44px; height: 44px; }
+.chip {
+  display: grid; place-items: center; flex: none;
+  width: 56px; height: 56px; border-radius: 14px;
+  background: color-mix(in srgb, var(--c) 16%, #fff);
+  color: var(--c);
+}
+.chip svg { width: 38px; height: 38px; }
 .cabeza h2 { margin: 0; font-size: 1.4rem; }
 .cabeza p { margin: 2px 0 0; color: var(--suave); }
 
@@ -125,5 +120,5 @@ main { max-width: 720px; margin: 0 auto; padding: 16px 16px calc(28px + env(safe
 .pasos span { color: var(--suave); font-size: .9rem; }
 .pronto {
   margin-top: 16px; padding: 12px 14px; border-radius: 12px;
-  background: rgba(245, 166, 35, .16); color: var(--texto); font-size: .9rem;
+  background: rgba(245, 166, 35, .18); color: var(--texto); font-size: .9rem;
 }

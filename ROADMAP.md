@@ -19,8 +19,11 @@ en un formato que el depósito acepte para despachar.
   (corto a propósito: "Despiece Carpintería" se corta en el lanzador); nombre completo en la app.
 - Paleta (2026-09-26, el usuario pidió "más viva, menos café"): azul petróleo `#0e6474` + ámbar `#f5a623`,
   fondo gris claro, y un color por trabajo (cocina naranja, baño azul, puerta verde, sala violeta,
-  comedor rojo, cama rosa). La madera queda solo en el closet del ícono y la foto.
-  La foto original va en la tarjeta del Closet.
+  comedor rojo, cama rosa).
+- Fondo beige madera **fijo** (sin modo oscuro): un carpintero con el celular en modo oscuro lo veía negro.
+- Cada tarjeta lleva una ilustración tipo caricatura del mueble (`tools/generar_ilustraciones.py` → `img/*.svg`),
+  con rótulo blanco translúcido para que la letra se lea. Closet ya no va resaltado en otro color;
+  solo ocupa el ancho completo arriba porque son 7 tarjetas.
 
 ## Etapas
 - [x] **Etapa 1**: PWA instalable, ícono, mosaico de 7 trabajos, pantalla por trabajo (placeholder).
@@ -45,6 +48,6 @@ en un formato que el depósito acepte para despachar.
 ## Técnico
 - Publicación: repo público `jrmunozma21171323/despiece-carpinteria`, GitHub Pages desde `main` (raíz). Cada `git push` republica en ~1 min.
 - Al cambiar archivos estáticos, subir la versión de `CACHE` en `sw.js` para que los celulares tomen lo nuevo.
-- Estático: `index.html`, `styles.css`, `app.js`, `sw.js`, `manifest.webmanifest`, `icons/`, `img/`.
+- Estático: `index.html`, `styles.css`, `app.js`, `sw.js`, `manifest.webmanifest`, `icons/`, `img/` (ilustraciones SVG).
 - Íconos: `python tools/generar_iconos.py` (PIL) los regenera en `icons/`.
 - Vista previa local: config `despiece` (python http.server, puerto 5173).
