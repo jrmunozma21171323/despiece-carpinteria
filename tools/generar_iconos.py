@@ -6,8 +6,8 @@ S = 1024
 def draw(scale_content=1.0):
     im = Image.new("RGB", (S, S))
     d = ImageDraw.Draw(im)
-    # vertical gradient background (walnut)
-    top, bot = (86, 54, 32), (38, 23, 13)
+    # vertical gradient background (azul petróleo)
+    top, bot = (22, 118, 136), (8, 56, 70)
     for y in range(S):
         t = y / (S - 1)
         d.line([(0, y), (S, y)], fill=tuple(int(top[i] + (bot[i] - top[i]) * t) for i in range(3)))
