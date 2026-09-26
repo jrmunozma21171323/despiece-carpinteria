@@ -19,7 +19,9 @@ en un formato que el depósito acepte para despachar.
 
 ## Etapas
 - [x] **Etapa 1**: PWA instalable, ícono, mosaico de 7 trabajos, pantalla por trabajo (placeholder).
-- [ ] **Etapa 1b**: publicar con HTTPS e instalar en un celular real (Android + iPhone).
+- [~] **Etapa 1b**: publicada en GitHub Pages → https://jrmunozma21171323.github.io/despiece-carpinteria/
+  Falta: instalarla y probarla en un celular real (Android + iPhone).
+  **Regla del usuario:** no se trabaja lo de adentro (etapa 2+) hasta cerrar la PWA.
 - [ ] **Etapa 2**: menú de materiales + 5 modelos base del Closet (con dibujo de cada uno).
 - [ ] **Etapa 3**: motor de despiece del Closet (reglas → piezas, cantos, tableros, herrajes).
 - [ ] **Etapa 4**: asistente de voz (conversación + fotos) para el Closet.
@@ -29,7 +31,6 @@ en un formato que el depósito acepte para despachar.
 ## Pendientes por conseguir / aclarar
 - Un despiece real de depósito (foto o PDF) y, de ser posible, un archivo exportado de CutList.
 - Qué versión de CutList usa ImporMaderas y si importa listas desde CSV/Excel.
-- Hosting con HTTPS (necesario para instalar la PWA).
 - Aprobar el uso de IA en servidor (Claude) para la conversación: tiene costo por uso y necesita internet.
 
 ## Bóveda de ideas
@@ -37,6 +38,8 @@ en un formato que el depósito acepte para despachar.
 - Mostrar un dibujo del mueble con las medidas dictadas para que el carpintero confirme antes del despiece.
 
 ## Técnico
+- Publicación: repo público `jrmunozma21171323/despiece-carpinteria`, GitHub Pages desde `main` (raíz). Cada `git push` republica en ~1 min.
+- Al cambiar archivos estáticos, subir la versión de `CACHE` en `sw.js` para que los celulares tomen lo nuevo.
 - Estático: `index.html`, `styles.css`, `app.js`, `sw.js`, `manifest.webmanifest`, `icons/`, `img/`.
 - Iconos generados con PIL (script en el scratchpad de la sesión del 2026-09-26; regenerable).
 - Vista previa local: config `despiece` (python http.server, puerto 5173).
