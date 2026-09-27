@@ -78,7 +78,23 @@ en un formato que el depósito acepte para despachar.
   - Piezas más largas que la lámina (techo, piso, zócalos, fondo) se parten **sobre una división**.
   - Medidas editables en el despiece (cm) mientras llega el asistente de voz; valida rangos y el alto mínimo
     del modelo, y avisa si con las medidas nuevas la ropa ya no cabe.
-- [ ] **Etapa 4**: asistente de voz (conversación + fotos) para el Closet.
+- [~] **Etapa 4 — Asistente de voz "Salomé"** (paso 3 del Closet, `#closet/asistente`).
+  - **Aprobado por el usuario (2026-09-26):** Claude + Azure pagos por uso, servidor en Cloudflare Workers.
+  - [x] Parte sin cuentas (v12): círculo de colores que respira y late (`orbe.js`: reposo / escuchando /
+        pensando / hablando, reacciona a la voz); motor de voz (`voz.js`: reconocimiento es-CO continuo,
+        muletillas "ajá/ok/entendido/perfecto" en pausas cortas, fin de turno a 1,5 s, voz femenina en español
+        del celular); **acciones** sobre el diseño con formato de herramientas de Claude (`closet/acciones.js`:
+        medidas, modelo, puertas, color, materiales, asignar/ajustar ropa, consultar despiece); **cerebro de
+        ensayo** (`closet/ensayo.js`): entrevista guiada ancho → alto → fondo → puertas → color → ropa →
+        resumen → despiece, entiende medidas habladas ("dos ochenta", "2,80", "dos metros ochenta") y órdenes
+        sueltas. Cuadro para escribir como respaldo (taller ruidoso). Chips con cada cambio y miniatura del diseño.
+  - [ ] El usuario crea las cuentas: Anthropic Console (API key), Azure Speech (recurso), Cloudflare.
+  - [ ] Worker en Cloudflare: /chat (Claude con `herramientasClaude()`), /voz (Azure TTS es-CO-SalomeNeural),
+        muletillas pregrabadas con la voz de Salomé. Claves solo como secretos del Worker.
+  - [ ] Cambiar en la pantalla el cerebro de ensayo por Claude y `hablar` por la voz de Salomé
+        (el ensayo queda como respaldo sin señal).
+  - [ ] Fotos: que el carpintero pueda mandar una foto del espacio o del boceto.
+  - [ ] Probar en iPhone (el reconocimiento de voz de Safari es menos estable).
 - [~] **Etapa 5 — Exportación** (`exportar.js`, "Enviar al depósito"): perfiles **Excel genérico** (`;` + BOM,
   sirve para CutList Plus/OptiCut/MaxCut con su asistente de importación), **CutList Optimizer**
   (Length, Width, Qty, Material, Label, Enabled, Grain direction), **CutList Plus fx** (Part #, Description,
@@ -91,7 +107,7 @@ en un formato que el depósito acepte para despachar.
 ## Pendientes por conseguir / aclarar
 - Un despiece real de depósito (foto o PDF) y, de ser posible, un archivo exportado de CutList.
 - Qué versión de CutList usa ImporMaderas y si importa listas desde CSV/Excel.
-- Aprobar el uso de IA en servidor (Claude) para la conversación: tiene costo por uso y necesita internet.
+- Crear las cuentas de Anthropic, Azure y Cloudflare (aprobado el 2026-09-26; las crea el usuario).
 
 ## Bóveda de ideas
 - Guardar las reglas de cada carpintero (zócalo, fondo encajado/clavado, holguras) como su "perfil".

@@ -1,8 +1,8 @@
 // Service worker: deja la app abriendo aunque no haya señal (el taller o la obra).
 // OJO: subir la versión en cada publicación.
-const CACHE = 'despiece-v11';
+const CACHE = 'despiece-v12';
 const ARCHIVOS = [
-  './', 'index.html', 'app.js', 'styles.css', 'manifest.webmanifest', 'materiales.js', 'exportar.js', 'closet/modelos.js', 'closet/despiece.js', 'closet/visor3d.js', 'closet/plano.js', 'closet/ropa3d.js',
+  './', 'index.html', 'app.js', 'styles.css', 'manifest.webmanifest', 'materiales.js', 'exportar.js', 'orbe.js', 'voz.js', 'closet/modelos.js', 'closet/acciones.js', 'closet/ensayo.js', 'closet/despiece.js', 'closet/visor3d.js', 'closet/plano.js', 'closet/ropa3d.js',
   'img/closet.svg', 'img/cocina.svg', 'img/bano.svg', 'img/puerta.svg', 'img/sala.svg', 'img/comedor.svg', 'img/cama.svg',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png'
 ];

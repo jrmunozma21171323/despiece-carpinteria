@@ -7,8 +7,9 @@ import {
 } from './closet/modelos.js';
 import { PREGUNTAS, GRUPOS, contexto, aplica, porDefecto, resumen as resumenMateriales } from './materiales.js';
 import { PERFILES, csvPiezas, csvCompleto, textoPedido, compartirODescargar } from './exportar.js';
+import { validarMedidas } from './closet/acciones.js';
 
-const VERSION = 11;   // igual al número de CACHE en sw.js: se muestra en la app para saber qué versión tiene cada celular
+const VERSION = 12;   // igual al número de CACHE en sw.js: se muestra en la app para saber qué versión tiene cada celular
 
 const s = (paths) =>
   `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
@@ -96,6 +97,11 @@ function trabajo(t) {
       ? `<li class="activo"><button class="paso-boton" data-ir="#closet/materiales"><span class="n">2</span>
            <div><b>${PASOS[1][0]}</b><span>${PASOS[1][1]}</span></div><span class="flecha">›</span></button></li>`
       : `<li class="bloqueado"><span class="n">2</span><div><b>${PASOS[1][0]}</b><span>Primero escoge el modelo.</span></div></li>`;
+  // Paso 3 (asistente de voz): con un modelo escogido ya se puede conversar
+  const paso3 = modelo
+    ? `<li class="activo voz"><button class="paso-boton" data-ir="#closet/asistente"><span class="n">🎙️</span>
+         <div><b>${PASOS[2][0]}</b><span>${PASOS[2][1]}</span></div><span class="flecha">›</span></button></li>`
+    : `<li class="bloqueado"><span class="n">3</span><div><b>${PASOS[2][0]}</b><span>Primero escoge el modelo.</span></div></li>`;
   // Paso 4 (despiece): con modelo y materiales ya se puede calcular
   const paso4 = modelo && cfg?.materiales
     ? `<li class="activo"><button class="paso-boton" data-ir="#closet/despiece"><span class="n">4</span>
@@ -112,8 +118,8 @@ function trabajo(t) {
     <ol class="pasos">
       ${paso1}
       ${paso2}
-      ${PASOS.map(([b, s], i) => (esCloset && i < 2) ? '' : (esCloset && i === 3) ? paso4 :
-        `<li${esCloset && i === 2 ? ' class="bloqueado"' : ''}><span class="n">${i + 1}</span><div><b>${b}</b><span>${esCloset && i === 2 ? 'Próximamente. Mientras tanto, las medidas se escriben en el despiece.' : s}</span></div></li>`).join('')}
+      ${PASOS.map(([b, s], i) => (esCloset && i < 2) ? '' : (esCloset && i === 3) ? paso4 : (esCloset && i === 2) ? paso3 :
+        `<li><span class="n">${i + 1}</span><div><b>${b}</b><span>${s}</span></div></li>`).join('')}
     </ol>
     ${esCloset ? '' : '<p class="pronto">🛠️ Esta sección está en construcción. Empezamos por el Closet.</p>'}
     <p class="version">Versión ${VERSION}</p>
@@ -355,7 +361,9 @@ const num = x => String(x).replace('.', ',');
 
 async function closetDespiece() {
   const cfg = leer('closet');
-  if (!cfg?.diseno || !cfg.materiales) { location.hash = '#closet'; return; }
+  if (!cfg?.diseno) { location.hash = '#closet'; return; }
+  // si llegó desde el asistente sin pasar por materiales, se usan los recomendados (★)
+  if (!cfg.materiales) { cfg.materiales = porDefecto(); cfg.diseno.espesor = Number(cfg.materiales.espesor) / 1000; guardar('closet', cfg); }
   const { calcularDespiece } = await import('./closet/despiece.js');
   despiece = calcularDespiece(cfg);
   const m = modeloPorId(cfg.modelo);
@@ -443,14 +451,8 @@ function recalcularMedidas(form) {
   const v = n => Number(String(form.elements[n].value).replace(',', '.')) / 100;
   const ancho = v('ancho'), alto = v('alto'), fondo = v('fondo');
   const cfg = leer('closet');
-  const n = cfg.diseno.cuerpos.length;
-  const topeMax = Math.max(...cfg.diseno.cuerpos.flatMap(c => c.elementos.map(e => (e.y ?? e.y1) + 0.05)));
-  const errores = [];
-  if (!(ancho >= 0.4 * n && ancho <= 4.8)) errores.push(`El ancho debe estar entre ${Math.round(40 * n)} y 480 cm para ${n} cuerpo(s).`);
-  if (!(alto >= 1.6 && alto <= 2.8)) errores.push('El alto debe estar entre 160 y 280 cm.');
-  else if (alto - 0.08 - 0.036 < topeMax) errores.push(`Este modelo necesita al menos ${Math.ceil((topeMax + 0.12) * 100)} cm de alto (por el maletero). Escoge otro modelo o sube el alto.`);
-  if (!(fondo >= 0.4 && fondo <= 0.7)) errores.push('El fondo debe estar entre 40 y 70 cm.');
-  if (errores.length) { alert(errores.join('\n')); return; }
+  const errores = validarMedidas(cfg.diseno, { ancho, alto, fondo });
+  if (errores.length) { alert(errores.map(x => '• ' + x[0].toUpperCase() + x.slice(1)).join('\n')); return; }
   cfg.diseno.medidas = { ancho, alto, fondo };
   guardar('closet', cfg);
   borrador = null;
@@ -475,9 +477,114 @@ async function exportar(tipo) {
   await compartirODescargar(`${base}-${sufijo}.csv`, contenido, 'text/csv', encabezado);
 }
 
-// ---------- Rutas: #closet, #closet/modelos, #closet/3d/<modelo>, #closet/plano, #closet/materiales, #closet/despiece ----------
+// ---------- Closet: asistente de voz ----------
+// Por ahora con el cerebro de ENSAYO (reglas) y la voz del celular. Cuando estén las cuentas,
+// se cambia el cerebro por Claude y la voz por Salomé (Azure); la pantalla no cambia.
+let asistente = null;   // { orbe, voz, cerebro }
+let conversacion = [];  // burbujas de esta sesión
+
+async function closetAsistente() {
+  const cfg = leer('closet');
+  if (!cfg?.diseno) { location.hash = '#closet'; return; }
+  app.innerHTML = `
+    <div class="pantalla asistente">
+      <div class="fila-titulo"><button class="volver" data-ir="#closet">‹ Closet</button><b>Salomé</b><span class="etiqueta-ensayo" title="Voz y cerebro provisionales">modo ensayo</span></div>
+      <div class="escena-orbe" data-accion="mic">
+        <canvas data-orbe aria-hidden="true"></canvas>
+        <p class="estado-voz" data-estado>Toca el círculo para empezar</p>
+      </div>
+      <div class="conversacion" data-conv aria-live="polite"></div>
+      <div class="cambios" data-cambios></div>
+      <form class="escribir" data-escribir>
+        <input name="t" type="text" autocomplete="off" placeholder="…o escríbele aquí" aria-label="Escribirle al asistente">
+        <button aria-label="Enviar">➤</button>
+      </form>
+      <div class="controles-voz">
+        <button class="mini-diseno" data-ir="#closet/3d/${cfg.modelo}" aria-label="Ver el diseño en 3D" data-mini>${dibujoFrontal(cfg.diseno)}</button>
+        <button class="mic" data-accion="mic" aria-label="Hablar con Salomé"><span data-mic-icono>🎙️</span></button>
+        <button class="ir-despiece" data-ir="#closet/despiece" aria-label="Ver el despiece">📋</button>
+      </div>
+    </div>`;
+
+  const [{ crearOrbe }, { crearVoz }, { crearCerebroEnsayo }] = await Promise.all([
+    import('./orbe.js'), import('./voz.js'), import('./closet/ensayo.js'),
+  ]);
+  if (!app.querySelector('[data-orbe]')) return;   // ya se fue de la pantalla
+  const orbe = crearOrbe(app.querySelector('[data-orbe]'));
+  const estado = app.querySelector('[data-estado]');
+  const TEXTOS = { reposo: 'Toca el círculo para hablar', escuchando: 'Te escucho…', pensando: 'Déjame ver…', hablando: 'Salomé está hablando' };
+  const voz = crearVoz({
+    onEstado: e => { orbe.ponerEstado(e); estado.textContent = TEXTOS[e]; app.querySelector('.mic')?.classList.toggle('activo', e !== 'reposo'); },
+    onNivel: v => orbe.empujar(v),
+    onParcial: t => burbuja('tu', t, true),
+    onTurno: t => turno(t),
+    onError: m => { estado.textContent = m; },
+  });
+  const cerebro = crearCerebroEnsayo();
+  asistente = { orbe, voz, cerebro, iniciado: false };
+  if (!voz.puedeOir) estado.textContent = 'Este navegador no deja usar el micrófono: escríbele abajo.';
+  conversacion.forEach(b => pintarBurbuja(b));
+}
+
+function pintarBurbuja({ quien, texto, parcial }) {
+  const conv = app.querySelector('[data-conv]');
+  if (!conv) return;
+  let el = conv.querySelector('.parcial');
+  if (!el || !parcial) {
+    conv.querySelector('.parcial')?.remove();
+    el = document.createElement('p');
+    conv.appendChild(el);
+  }
+  el.className = `burbuja ${quien}${parcial ? ' parcial' : ''}`;
+  el.textContent = texto;
+  conv.scrollTop = conv.scrollHeight;
+}
+function burbuja(quien, texto, parcial = false) {
+  if (!parcial) conversacion.push({ quien, texto });
+  conversacion = conversacion.slice(-30);
+  pintarBurbuja({ quien, texto, parcial });
+}
+
+async function empezarAsistente() {
+  if (!asistente) return;
+  const { voz, cerebro } = asistente;
+  if (voz.activo) { voz.parar(); return; }
+  voz.empezar();
+  if (!asistente.iniciado) {
+    asistente.iniciado = true;
+    const r = await cerebro.iniciar();
+    burbuja('ella', r.texto);
+    await voz.hablar(r.texto);
+  }
+}
+
+async function turno(texto) {
+  if (!asistente) return;
+  const { voz, cerebro } = asistente;
+  burbuja('tu', texto);
+  voz.pensar();
+  const r = await cerebro.responder(texto);
+  if (!asistente) return;
+  const cambios = app.querySelector('[data-cambios]');
+  for (const c of r.cambios || []) {
+    const chip = Object.assign(document.createElement('span'), { className: 'cambio', textContent: `✔ ${c}` });
+    cambios?.prepend(chip);
+  }
+  if (r.cambios?.length) {   // el dibujo pequeño se actualiza con el diseño nuevo
+    const cfg = leer('closet');
+    const mini = app.querySelector('[data-mini]');
+    if (mini) { mini.innerHTML = dibujoFrontal(cfg.diseno); mini.dataset.ir = `#closet/3d/${cfg.modelo}`; }
+    borrador = null;
+  }
+  burbuja('ella', r.texto);
+  await voz.hablar(r.texto);
+  if (r.ir) { voz.parar(); location.hash = r.ir; }
+}
+
+// ---------- Rutas: #closet, #closet/modelos, #closet/3d/<modelo>, #closet/plano, #closet/materiales, #closet/despiece, #closet/asistente ----------
 function mostrar() {
   visor?.destruir(); visor = null;
+  if (asistente) { asistente.voz.destruir(); asistente.orbe.destruir(); asistente = null; }
   const [id, sub, arg] = location.hash.slice(1).split('/');
   const t = TRABAJOS.find(x => x.id === id);
   if (id === 'closet' && sub === 'modelos') modelosCloset();
@@ -485,6 +592,7 @@ function mostrar() {
   else if (id === 'closet' && sub === 'plano') closetPlano();
   else if (id === 'closet' && sub === 'materiales') closetMateriales();
   else if (id === 'closet' && sub === 'despiece') closetDespiece();
+  else if (id === 'closet' && sub === 'asistente') closetAsistente();
   else t ? trabajo(t) : inicio();
   app.scrollTop = 0;
 }
@@ -493,6 +601,7 @@ app.addEventListener('click', e => {
   const b = e.target.closest('[data-id], [data-ir], [data-modelo], [data-accion], [data-pestana], [data-ajustar], [data-puerta], [data-color], [data-mat], [data-color-mat], [data-pestana-mat], [data-pestana-des], [data-exportar], [data-hoja]');
   if (!b) return;
   const d = b.dataset;
+  if (d.accion === 'mic') { empezarAsistente(); return; }
   if (d.pestanaDes) { pestanaDes = d.pestanaDes; pintarDespiece(); return; }
   if (d.accion === 'abrir-envio') { app.querySelector('[data-hoja]').hidden = false; return; }
   if (d.accion === 'cerrar-envio' || (b.matches('[data-hoja]') && e.target === b)) { app.querySelector('[data-hoja]').hidden = true; return; }
@@ -538,7 +647,20 @@ app.addEventListener('click', e => {
   }
 });
 
-app.addEventListener('submit', e => {
+app.addEventListener('submit', async e => {
+  const escribir = e.target.closest('[data-escribir]');
+  if (escribir) {
+    e.preventDefault();
+    const t = escribir.elements.t.value.trim();
+    if (!t || !asistente) return;
+    escribir.elements.t.value = '';
+    if (!asistente.iniciado) {   // si empieza escribiendo, primero el saludo
+      asistente.iniciado = true;
+      burbuja('ella', (await asistente.cerebro.iniciar()).texto);
+    }
+    turno(t);
+    return;
+  }
   const form = e.target.closest('[data-medidas]');
   if (!form) return;
   e.preventDefault();

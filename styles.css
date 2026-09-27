@@ -376,3 +376,33 @@ main {
 .opcion-envio b { display: block; font-size: .92rem; }
 .opcion-envio small { display: block; font-size: .74rem; color: var(--suave); margin-top: 2px; }
 .opcion-envio:active { border-color: var(--petroleo); }
+
+/* ---------- Asistente de voz ---------- */
+.pasos li.voz { border-color: #d6408e; background: linear-gradient(135deg, #fff, #fdf0f6); }
+.pasos li.voz .n { background: linear-gradient(135deg, #14b4c8, #d6408e); font-size: .95rem; }
+.etiqueta-ensayo { margin-left: auto; font-size: .68rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: #fff3d6; color: #8a5a00; }
+.escena-orbe { flex: 1; min-height: 170px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; cursor: pointer; -webkit-user-select: none; user-select: none; }
+.escena-orbe canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.estado-voz { position: relative; margin: 0 0 4px; font-size: .86rem; font-weight: 700; color: var(--suave); background: rgba(255, 255, 255, .7); padding: 3px 12px; border-radius: 999px; }
+.conversacion { flex: none; max-height: 30%; min-height: 64px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 4px 2px; }
+.burbuja { margin: 0; max-width: 86%; padding: 8px 11px; border-radius: 14px; font-size: .86rem; line-height: 1.35; box-shadow: var(--sombra); }
+.burbuja.ella { align-self: flex-start; background: #fff; border-bottom-left-radius: 4px; }
+.burbuja.tu { align-self: flex-end; background: var(--petroleo); color: #fff; border-bottom-right-radius: 4px; }
+.burbuja.parcial { opacity: .7; font-style: italic; }
+.cambios { flex: none; display: flex; gap: 6px; overflow-x: auto; padding: 4px 0; min-height: 0; }
+.cambios:empty { display: none; }
+.cambio { flex: none; font-size: .72rem; font-weight: 700; color: #1d7a43; background: #e7f6ec; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+.escribir { flex: none; display: flex; gap: 6px; margin: 4px 0 6px; }
+.escribir input { flex: 1; min-width: 0; font: inherit; font-size: .9rem; padding: 9px 12px; border-radius: 999px; border: 1.5px solid var(--borde); background: #fff; }
+.escribir button { width: 40px; border: 0; border-radius: 50%; background: var(--petroleo); color: #fff; font-size: 1rem; cursor: pointer; }
+.controles-voz { flex: none; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; }
+.mic {
+  width: 72px; height: 72px; border-radius: 50%; border: 0; cursor: pointer; font-size: 1.9rem;
+  background: linear-gradient(135deg, #14b4c8, #7e57c2 55%, #d6408e); color: #fff;
+  box-shadow: 0 6px 18px rgba(126, 87, 194, .45);
+}
+.mic.activo { background: linear-gradient(135deg, #e0474c, #d6408e); animation: latir 1.2s ease-in-out infinite; }
+@keyframes latir { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.08); } 30% { transform: scale(1); } 45% { transform: scale(1.05); } }
+.mini-diseno, .ir-despiece { justify-self: start; width: 56px; height: 56px; border-radius: 12px; border: 0; background: #fff; box-shadow: var(--sombra); padding: 4px; cursor: pointer; font-size: 1.5rem; }
+.ir-despiece { justify-self: end; }
+.mini-diseno svg { width: 100%; height: 100%; display: block; }
