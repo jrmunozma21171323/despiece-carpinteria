@@ -6,8 +6,9 @@ import {
   modeloPorId, dibujoFrontal, revisarTubos, cambiarUso, ajustarTubo, necesita, copiar,
 } from './closet/modelos.js';
 import { PREGUNTAS, GRUPOS, contexto, aplica, porDefecto, resumen as resumenMateriales } from './materiales.js';
+import { PERFILES, csvPiezas, csvCompleto, textoPedido, compartirODescargar } from './exportar.js';
 
-const VERSION = 10;   // igual al número de CACHE en sw.js: se muestra en la app para saber qué versión tiene cada celular
+const VERSION = 11;   // igual al número de CACHE en sw.js: se muestra en la app para saber qué versión tiene cada celular
 
 const s = (paths) =>
   `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
@@ -95,6 +96,11 @@ function trabajo(t) {
       ? `<li class="activo"><button class="paso-boton" data-ir="#closet/materiales"><span class="n">2</span>
            <div><b>${PASOS[1][0]}</b><span>${PASOS[1][1]}</span></div><span class="flecha">›</span></button></li>`
       : `<li class="bloqueado"><span class="n">2</span><div><b>${PASOS[1][0]}</b><span>Primero escoge el modelo.</span></div></li>`;
+  // Paso 4 (despiece): con modelo y materiales ya se puede calcular
+  const paso4 = modelo && cfg?.materiales
+    ? `<li class="activo"><button class="paso-boton" data-ir="#closet/despiece"><span class="n">4</span>
+         <div><b>${PASOS[3][0]}</b><span>${PASOS[3][1]}</span></div><span class="flecha">›</span></button></li>`
+    : `<li class="bloqueado"><span class="n">4</span><div><b>${PASOS[3][0]}</b><span>Primero escoge el modelo y los materiales.</span></div></li>`;
   app.innerHTML = `
     <div style="--c:${t.color}">
     <button class="volver" data-ir="#">‹ Volver</button>
@@ -106,10 +112,10 @@ function trabajo(t) {
     <ol class="pasos">
       ${paso1}
       ${paso2}
-      ${PASOS.map(([b, s], i) => (esCloset && i < 2) ? '' :
-        `<li><span class="n">${i + 1}</span><div><b>${b}</b><span>${s}</span></div></li>`).join('')}
+      ${PASOS.map(([b, s], i) => (esCloset && i < 2) ? '' : (esCloset && i === 3) ? paso4 :
+        `<li${esCloset && i === 2 ? ' class="bloqueado"' : ''}><span class="n">${i + 1}</span><div><b>${b}</b><span>${esCloset && i === 2 ? 'Próximamente. Mientras tanto, las medidas se escriben en el despiece.' : s}</span></div></li>`).join('')}
     </ol>
-    <p class="pronto">🛠️ ${esCloset ? 'Los siguientes pasos están en construcción.' : 'Esta sección está en construcción. Empezamos por el Closet.'}</p>
+    ${esCloset ? '' : '<p class="pronto">🛠️ Esta sección está en construcción. Empezamos por el Closet.</p>'}
     <p class="version">Versión ${VERSION}</p>
     </div>`;
 }
@@ -341,7 +347,135 @@ function guardarMateriales() {
   location.hash = '#closet';
 }
 
-// ---------- Rutas: #closet, #closet/modelos, #closet/3d/<modelo>, #closet/plano, #closet/materiales ----------
+// ---------- Closet: despiece ----------
+let despiece = null;
+let pestanaDes = 'piezas';
+const cmTxt = m => String(Math.round(m * 1000) / 10).replace('.', ',');
+const num = x => String(x).replace('.', ',');
+
+async function closetDespiece() {
+  const cfg = leer('closet');
+  if (!cfg?.diseno || !cfg.materiales) { location.hash = '#closet'; return; }
+  const { calcularDespiece } = await import('./closet/despiece.js');
+  despiece = calcularDespiece(cfg);
+  const m = modeloPorId(cfg.modelo);
+  const { ancho, alto, fondo } = cfg.diseno.medidas;
+  const noCaben = revisarTubos(cfg.diseno).filter(t => !t.cabe);
+  const laminas = despiece.tableros.reduce((s, t) => s + t.laminas, 0);
+  const canto = despiece.cantos.reduce((s, c) => s + c.pedir, 0);
+  app.innerHTML = `
+    <div class="pantalla">
+      <div class="fila-titulo"><button class="volver" data-ir="#closet">‹ Closet</button><b>Despiece</b></div>
+      <div class="resumen-des">
+        <p class="linea"><b>${m.nombre}</b> · ${despiece.nombreTablero}</p>
+        <form class="medidas" data-medidas>
+          <label>Ancho<input name="ancho" type="number" inputmode="decimal" step="0.1" value="${cmTxt(ancho).replace(',', '.')}"></label>
+          <label>Alto<input name="alto" type="number" inputmode="decimal" step="0.1" value="${cmTxt(alto).replace(',', '.')}"></label>
+          <label>Fondo<input name="fondo" type="number" inputmode="decimal" step="0.1" value="${cmTxt(fondo).replace(',', '.')}"></label>
+          <button class="recalcular">Recalcular</button>
+        </form>
+        <p class="nota-medidas">Medidas del closet en cm. Escríbelas y toca Recalcular.</p>
+        ${noCaben.length ? `<p class="alerta">⚠️ Con estas medidas no cabe la ropa del cuerpo ${noCaben.map(t => t.ci + 1).join(', ')}. <a href="#closet/3d/${cfg.modelo}">Revisar en el 3D</a></p>` : ''}
+        ${despiece.avisos.map(a => `<p class="alerta">⚠️ ${a}</p>`).join('')}
+        <div class="cifras">
+          <div><b>${despiece.nPiezas}</b><small>piezas</small></div>
+          <div><b>${laminas}</b><small>láminas</small></div>
+          <div><b>${canto} m</b><small>de canto</small></div>
+        </div>
+      </div>
+      <div class="pestanas" role="tablist">
+        <button role="tab" data-pestana-des="piezas">📋 Piezas</button>
+        <button role="tab" data-pestana-des="tableros">🪵 Tableros</button>
+        <button role="tab" data-pestana-des="herrajes">🔩 Herrajes</button>
+      </div>
+      <div class="lista-des" data-lista></div>
+      <button class="primario ancho" data-accion="abrir-envio">📤 Enviar al depósito</button>
+    </div>
+    <div class="hoja-fondo" data-hoja hidden>
+      <div class="hoja" role="dialog" aria-label="Enviar al depósito">
+        <h3>¿Qué programa usa el depósito?</h3>
+        <p class="nota">Se genera el archivo de piezas para ese programa y se comparte (WhatsApp, correo) o se descarga.</p>
+        ${PERFILES.map(p => `<button class="opcion-envio" data-exportar="${p.id}"><b>${p.nombre}</b><small>${p.detalle}</small></button>`).join('')}
+        <button class="opcion-envio" data-exportar="completo"><b>Lista completa (Excel)</b><small>Piezas + tableros + cantos + herrajes + consumibles en un solo archivo.</small></button>
+        <button class="opcion-envio" data-exportar="whatsapp"><b>Mensaje de lo que hay que comprar</b><small>Texto para WhatsApp: láminas, cantos, herrajes y consumibles.</small></button>
+        <button class="enlace" data-accion="cerrar-envio">Cerrar</button>
+      </div>
+    </div>`;
+  pintarDespiece();
+}
+
+function pintarDespiece() {
+  const lista = app.querySelector('[data-lista]');
+  if (!lista || !despiece) return;
+  app.querySelectorAll('[data-pestana-des]').forEach(b => b.setAttribute('aria-selected', b.dataset.pestanaDes === pestanaDes));
+  const cantoCorto = p => !p.tipoCanto ? 'sin canto'
+    : `canto ${[p.cantoL && `${p.cantoL}L`, p.cantoA && `${p.cantoA}A`].filter(Boolean).join('+')} ${num(p.tipoCanto)} mm`;
+  if (pestanaDes === 'piezas') {
+    let modulo = '';
+    lista.innerHTML = despiece.piezas.map(p => {
+      const grupo = p.modulo.split(',')[0].replace(/ \d+$/, '') === 'Cuerpo' ? 'Interior' : p.modulo.split(',')[0];
+      const cab = grupo !== modulo ? `<h4>${(modulo = grupo)}</h4>` : '';
+      return `${cab}<div class="fila-pieza">
+        <span class="cant">${p.cant}×</span>
+        <div class="que"><b>${p.nombre}</b><small>${p.modulo}${p.material !== despiece.nombreTablero ? ` · ${p.material}` : ''}${p.nota ? ` · ${p.nota}` : ''}</small></div>
+        <div class="dims"><b>${p.largo} × ${p.ancho}</b><small>${p.espesor} mm · ${cantoCorto(p)}${p.veta ? ' · veta' : ''}</small></div>
+      </div>`;
+    }).join('') + '<p class="nota">Medidas en mm: largo × ancho. El largo va en el sentido de la veta. L = lados largos, A = lados anchos con canto.</p>';
+  } else if (pestanaDes === 'tableros') {
+    lista.innerHTML = `<h4>Tableros</h4>${despiece.tableros.map(t => `
+      <div class="fila-pieza"><span class="cant">${t.laminas}</span>
+        <div class="que"><b>${t.material}</b><small>lámina(s) de 2,44 × 1,83 m · ${num(t.m2.toFixed(2))} m² en piezas</small></div></div>`).join('')}
+      <p class="nota">Estimado con ${Math.round(0.85 * 100)} % de aprovechamiento. El depósito confirma el número exacto al optimizar el corte.</p>
+      <h4>Cantos</h4>${despiece.cantos.map(c => `
+      <div class="fila-pieza"><span class="cant">${c.pedir} m</span>
+        <div class="que"><b>${c.nombre}</b><small>${num(c.metros.toFixed(1))} m exactos + 10 % de desperdicio</small></div></div>`).join('') || '<p class="nota">Sin canto.</p>'}`;
+  } else {
+    const filas = xs => xs.map(h => `<div class="fila-pieza"><span class="cant">${num(h.cant)}</span>
+      <div class="que"><b>${h.nombre}</b><small>${h.unidad}${h.nota ? ` · ${h.nota}` : ''}</small></div></div>`).join('');
+    lista.innerHTML = `<h4>Herrajes</h4>${filas(despiece.herrajes) || '<p class="nota">Sin herrajes.</p>'}
+      <h4>Consumibles</h4>${filas(despiece.consumibles)}
+      <p class="nota">Tornillos y puntillas son un cálculo aproximado con 10 % de más.</p>`;
+  }
+  lista.scrollTop = 0;
+}
+
+function recalcularMedidas(form) {
+  const v = n => Number(String(form.elements[n].value).replace(',', '.')) / 100;
+  const ancho = v('ancho'), alto = v('alto'), fondo = v('fondo');
+  const cfg = leer('closet');
+  const n = cfg.diseno.cuerpos.length;
+  const topeMax = Math.max(...cfg.diseno.cuerpos.flatMap(c => c.elementos.map(e => (e.y ?? e.y1) + 0.05)));
+  const errores = [];
+  if (!(ancho >= 0.4 * n && ancho <= 4.8)) errores.push(`El ancho debe estar entre ${Math.round(40 * n)} y 480 cm para ${n} cuerpo(s).`);
+  if (!(alto >= 1.6 && alto <= 2.8)) errores.push('El alto debe estar entre 160 y 280 cm.');
+  else if (alto - 0.08 - 0.036 < topeMax) errores.push(`Este modelo necesita al menos ${Math.ceil((topeMax + 0.12) * 100)} cm de alto (por el maletero). Escoge otro modelo o sube el alto.`);
+  if (!(fondo >= 0.4 && fondo <= 0.7)) errores.push('El fondo debe estar entre 40 y 70 cm.');
+  if (errores.length) { alert(errores.join('\n')); return; }
+  cfg.diseno.medidas = { ancho, alto, fondo };
+  guardar('closet', cfg);
+  borrador = null;
+  closetDespiece();
+}
+
+async function exportar(tipo) {
+  const cfg = leer('closet');
+  const m = modeloPorId(cfg.modelo);
+  const { ancho, alto, fondo } = cfg.diseno.medidas;
+  const encabezado = `Closet ${m.nombre} · ${cmTxt(ancho)} × ${cmTxt(alto)} × ${cmTxt(fondo)} cm · ${despiece.nombreTablero}`;
+  const fecha = new Date().toISOString().slice(0, 10);
+  const base = `despiece-closet-${cfg.modelo}-${fecha}`;
+  const texto = textoPedido(despiece, encabezado);
+  if (tipo === 'whatsapp') {
+    if (navigator.share) { try { await navigator.share({ text: texto }); return; } catch (e) { if (e.name === 'AbortError') return; } }
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
+    return;
+  }
+  const contenido = tipo === 'completo' ? csvCompleto(despiece, encabezado) : csvPiezas(despiece, tipo);
+  const sufijo = tipo === 'completo' ? 'completo' : tipo;
+  await compartirODescargar(`${base}-${sufijo}.csv`, contenido, 'text/csv', encabezado);
+}
+
+// ---------- Rutas: #closet, #closet/modelos, #closet/3d/<modelo>, #closet/plano, #closet/materiales, #closet/despiece ----------
 function mostrar() {
   visor?.destruir(); visor = null;
   const [id, sub, arg] = location.hash.slice(1).split('/');
@@ -350,14 +484,20 @@ function mostrar() {
   else if (id === 'closet' && sub === '3d') closet3d(arg);
   else if (id === 'closet' && sub === 'plano') closetPlano();
   else if (id === 'closet' && sub === 'materiales') closetMateriales();
+  else if (id === 'closet' && sub === 'despiece') closetDespiece();
   else t ? trabajo(t) : inicio();
   app.scrollTop = 0;
 }
 
 app.addEventListener('click', e => {
-  const b = e.target.closest('[data-id], [data-ir], [data-modelo], [data-accion], [data-pestana], [data-ajustar], [data-puerta], [data-color], [data-mat], [data-color-mat], [data-pestana-mat]');
+  const b = e.target.closest('[data-id], [data-ir], [data-modelo], [data-accion], [data-pestana], [data-ajustar], [data-puerta], [data-color], [data-mat], [data-color-mat], [data-pestana-mat], [data-pestana-des], [data-exportar], [data-hoja]');
   if (!b) return;
   const d = b.dataset;
+  if (d.pestanaDes) { pestanaDes = d.pestanaDes; pintarDespiece(); return; }
+  if (d.accion === 'abrir-envio') { app.querySelector('[data-hoja]').hidden = false; return; }
+  if (d.accion === 'cerrar-envio' || (b.matches('[data-hoja]') && e.target === b)) { app.querySelector('[data-hoja]').hidden = true; return; }
+  if (d.exportar) { exportar(d.exportar); return; }
+  if (b.matches('[data-hoja]')) return;
   if (d.mat) { mat.valores[d.mat] = d.val; pintarMateriales(); return; }
   if (d.colorMat) { mat.color = d.colorMat; pintarMateriales(); return; }
   if (d.pestanaMat) { pestanaMat = d.pestanaMat; pintarMateriales(); return; }
@@ -396,6 +536,13 @@ app.addEventListener('click', e => {
     seleccion = borrador.modelo;
     location.hash = '#closet/plano';
   }
+});
+
+app.addEventListener('submit', e => {
+  const form = e.target.closest('[data-medidas]');
+  if (!form) return;
+  e.preventDefault();
+  recalcularMedidas(form);
 });
 
 app.addEventListener('change', e => {

@@ -65,9 +65,27 @@ en un formato que el depósito acepte para despachar.
         Se habilita cuando ya hay modelo. Opciones a validar con los carpinteros y el depósito.
   - Decisiones: el modelo = **distribución interior**; las puertas se preguntan aparte. Las medidas de cada
     modelo son de referencia; con las reales, el asistente ajusta y puede sugerir más o menos cuerpos.
-- [ ] **Etapa 3**: motor de despiece del Closet (reglas → piezas, cantos, tableros, herrajes).
+- [x] **Etapa 3 — Despiece del Closet** (`closet/despiece.js`, paso 4 de la app, `#closet/despiece`).
+  - Piezas en mm (largo = sentido de la veta), agrupadas; cantos por lado (L/A) y tipo; tableros estimados por
+    área (lámina 2440 × 1830, 85 % de aprovechamiento); cantos en metros + 10 %; herrajes (correderas con largo
+    según el fondo, bisagras 2–5 según alto de puerta, rieles/rodamientos, jaladeras o perfil, tubos por tramo
+    con soportes, varillas de zapatero); consumibles (tornillos de armado y de herrajes, puntillas del fondo,
+    tapatornillos, colbón) con 10 % de más.
+  - Reglas usadas (**a validar con carpinteros**): laterales enteros; techo/piso/zócalos entre laterales;
+    fondo sobrepuesto (resta su espesor al fondo de la estructura); entrepaños retirados 20 mm; cajón con frente
+    embutido (luz 2 mm), caja = hueco − 26 mm, fondo HDF 3 mm del mismo del closet; puertas batientes
+    sobrepuestas partidas en el maletero, luz 3 mm; entrepaño que cruza un divisor sale en 2 mitades.
+  - Piezas más largas que la lámina (techo, piso, zócalos, fondo) se parten **sobre una división**.
+  - Medidas editables en el despiece (cm) mientras llega el asistente de voz; valida rangos y el alto mínimo
+    del modelo, y avisa si con las medidas nuevas la ropa ya no cabe.
 - [ ] **Etapa 4**: asistente de voz (conversación + fotos) para el Closet.
-- [ ] **Etapa 5**: exportación compatible con CutList; validar en ImporMaderas.
+- [~] **Etapa 5 — Exportación** (`exportar.js`, "Enviar al depósito"): perfiles **Excel genérico** (`;` + BOM,
+  sirve para CutList Plus/OptiCut/MaxCut con su asistente de importación), **CutList Optimizer**
+  (Length, Width, Qty, Material, Label, Enabled, Grain direction), **CutList Plus fx** (Part #, Description,
+  Copies, Thickness, Width, Length, Material, Can Rotate, Notes); **lista completa** en Excel; **mensaje de
+  WhatsApp** con lo que hay que comprar. Comparte el archivo (WhatsApp/correo) o lo descarga.
+  Falta: validar en ImporMaderas; confirmar sentido de "Grain direction" en CutList Optimizer; agregar el
+  perfil del programa de cada depósito nuevo (es sumar un perfil en `exportar.js`).
 - [ ] **Etapa 6**: beta con carpinteros; luego resto de trabajos.
 
 ## Pendientes por conseguir / aclarar
