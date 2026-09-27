@@ -56,7 +56,13 @@ en un formato que el depósito acepte para despachar.
   - [x] **Plano con medidas** al final (pedido del usuario, con imagen de referencia): ancho de cada cuerpo,
         altura de cada espacio, espacio libre bajo cada tubo (verde/rojo), cajones, totales y fondo.
   - [ ] Construye tu modelo.
-  - [ ] Paso 2: menú de materiales.
+  - [x] **Paso 2: materiales** (`materiales.js`, compartido para todas las secciones). 3 pestañas que caben
+        en una pantalla y se recorren con "Siguiente": **Tableros** (Melamina / Melamina RH / MDF; 15 o 18 mm;
+        color), **Cantos y fondo** (canto mixto / 0,45 / 2 mm; fondo HDF 3 mm / melamina 9 mm / sin fondo),
+        **Herrajes** (solo los que el diseño usa: correderas si hay cajones, bisagras si hay batientes,
+        riel si hay corredizas, jaladeras, tubos). Cada opción explica para qué sirve; ★ = recomendada y
+        viene por defecto. El espesor escogido pasa al diseño (`diseno.espesor`): 3D, plano y despiece lo usan.
+        Se habilita cuando ya hay modelo. Opciones a validar con los carpinteros y el depósito.
   - Decisiones: el modelo = **distribución interior**; las puertas se preguntan aparte. Las medidas de cada
     modelo son de referencia; con las reales, el asistente ajusta y puede sugerir más o menos cuerpos.
 - [ ] **Etapa 3**: motor de despiece del Closet (reglas → piezas, cantos, tableros, herrajes).

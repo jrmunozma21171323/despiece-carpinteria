@@ -1,6 +1,6 @@
 // Plano frontal con medidas (cotas) del closet, generado del mismo diseño que el 3D.
 // Unidades del dibujo: centímetros.
-import { ESPESOR, ZOCALO, repartirCuerpos, revisarTubos, altoInterior } from './modelos.js';
+import { ZOCALO, espesorDe, repartirCuerpos, revisarTubos, altoInterior } from './modelos.js';
 
 const K = 100;
 const cm = m => {
@@ -29,6 +29,7 @@ function cotaH(y, xa, xb, texto, color = LINEA) {
 
 export function planoConMedidas(diseno) {
   const { ancho, alto, fondo } = diseno.medidas;
+  const ESPESOR = espesorDe(diseno);
   const W = ancho * K, H = alto * K, t = ESPESOR * K, z = ZOCALO * K;
   const Y = yInterior => H - z - t - yInterior * K;   // y interior (m) -> y del SVG
   const hi = altoInterior(diseno);

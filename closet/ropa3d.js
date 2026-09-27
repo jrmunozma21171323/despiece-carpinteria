@@ -3,7 +3,7 @@
 // "vean" el closet en uso; el largo de cada prenda es el real (USOS), así se nota si no cabe.
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { ESPESOR as T, USOS, repartirCuerpos, revisarTubos } from './modelos.js';
+import { USOS, espesorDe, repartirCuerpos, revisarTubos } from './modelos.js';
 
 // ---------- Colores sobrios (como un closet real) ----------
 const PALETAS = {
@@ -213,6 +213,7 @@ function prenda(uso, color, patron, noCabe) {
 
 /** Arma todo: prendas en los tubos, ropa doblada, cajas y zapatos. */
 export function vestirCloset(grupo, diseno, { yb, x }) {
+  const T = espesorDe(diseno);
   const cuerpos = repartirCuerpos(diseno);
 
   // --- Prendas colgadas ---

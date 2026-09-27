@@ -9,9 +9,10 @@
 //   divisor   {y0, y1}         tabla vertical en la mitad del cuerpo (arma nichos)
 //   zapatero  {y0, y1, n}      n bandejas inclinadas para zapatos
 
-export const ESPESOR = 0.018;   // tablero de 18 mm
+export const ESPESOR = 0.015;   // tablero por defecto: 15 mm (el más usado); el diseño puede traer otro
 export const ZOCALO = 0.08;     // altura de la base
-const T = ESPESOR;
+/** Espesor del tablero de un diseño (lo fija el paso de materiales). */
+export const espesorDe = d => d.espesor ?? ESPESOR;
 
 const MALETERO = 1.85;          // altura del entrepaño de maleteros en la mayoría de modelos
 
@@ -125,6 +126,7 @@ export const PUERTAS = [
 
 /** Reparte el ancho interior entre los cuerpos. Devuelve [{x0, x1}] en metros desde el borde izquierdo. */
 export function repartirCuerpos(diseno) {
+  const T = espesorDe(diseno);
   const { ancho } = diseno.medidas;
   const n = diseno.cuerpos.length;
   const util = ancho - 2 * T - (n - 1) * T;
@@ -139,10 +141,12 @@ export function repartirCuerpos(diseno) {
 }
 
 /** Alto interior útil (del piso interior al techo interior). */
-export const altoInterior = m => m.medidas.alto - ZOCALO - 2 * T;
+export const altoInterior = m => m.medidas.alto - ZOCALO - 2 * espesorDe(m);
+
+const topeCon = (e, T) => tope(e, T);
 
 /** Hasta dónde sube un elemento (su borde superior), para medir el espacio libre bajo un tubo. */
-function tope(e) {
+function tope(e, T) {
   if (e.t === 'entrepano') return e.y + T;
   if (e.t === 'cajones') return e.y + e.n * e.alto;
   if (e.t === 'zapatero') return e.y1;
@@ -154,12 +158,13 @@ function tope(e) {
 /** Revisa cada tubo: cuánto espacio libre tiene debajo y si cabe la ropa que se va a colgar ahí. */
 export function revisarTubos(diseno) {
   const r = [];
+  const T = espesorDe(diseno);
   const anchos = repartirCuerpos(diseno).map(({ x0, x1 }) => x1 - x0 - 0.04);
   diseno.cuerpos.forEach((c, ci) => {
     const tubos = c.elementos.filter(e => e.t === 'tubo').sort((a, b) => b.y - a.y);
     tubos.forEach((tubo, k) => {
-      const debajo = c.elementos.filter(e => e !== tubo && (e.t === 'tubo' ? e.y < tubo.y : tope(e) <= tubo.y + 0.001));
-      const piso = Math.max(0, ...debajo.map(tope));
+      const debajo = c.elementos.filter(e => e !== tubo && (e.t === 'tubo' ? e.y < tubo.y : tope(e, T) <= tubo.y + 0.001));
+      const piso = Math.max(0, ...debajo.map(e => tope(e, T)));
       const espacio = tubo.y - piso;
       const uso = tubo.uso || 'camisas';
       const falta = necesita(uso) - espacio;
@@ -188,6 +193,8 @@ export function cambiarUso(diseno, ci, k, uso) {
  */
 export function ajustarTubo(diseno, ci, k) {
   const d = copiar(diseno);
+  const T = espesorDe(d);
+  const tope = e => topeCon(e, T);
   const cuerpo = d.cuerpos[ci];
   const tubo = cuerpo.elementos.filter(e => e.t === 'tubo').sort((a, b) => b.y - a.y)[k];
   const limite = tubo.y - necesita(tubo.uso || 'camisas');   // la prenda llega hasta aquí
@@ -239,6 +246,7 @@ export function dibujoFrontal(diseno) {
     `<rect x="3" y="${H - ZOCALO * k}" width="${W - 6}" height="${ZOCALO * k}" fill="#c7823c"/>`,
   ];
   repartirCuerpos(diseno).forEach(({ x0, x1 }, i) => {
+    const T = espesorDe(diseno);
     const a = x0 * k + (t - T * k) / 2, b = x1 * k - (t - T * k) / 2, cw = b - a;
     partes.push(`<rect x="${a}" y="${top}" width="${cw}" height="${yb - top}" fill="#9c5a28"/>`);
     for (const e of diseno.cuerpos[i].elementos) {

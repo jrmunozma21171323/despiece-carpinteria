@@ -5,8 +5,9 @@ import {
   MODELOS, USOS, COLORES, PUERTAS, FONDO_MIN,
   modeloPorId, dibujoFrontal, revisarTubos, cambiarUso, ajustarTubo, necesita, copiar,
 } from './closet/modelos.js';
+import { PREGUNTAS, GRUPOS, contexto, aplica, porDefecto, resumen as resumenMateriales } from './materiales.js';
 
-const VERSION = 9;   // igual al número de CACHE en sw.js: se muestra en la app para saber qué versión tiene cada celular
+const VERSION = 10;   // igual al número de CACHE en sw.js: se muestra en la app para saber qué versión tiene cada celular
 
 const s = (paths) =>
   `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
@@ -85,6 +86,15 @@ function trabajo(t) {
              <button class="enlace" data-ir="#closet/modelos">Cambiar</button></span></div></div></li>`
     : `<li class="activo"><button class="paso-boton" data-ir="#closet/modelos"><span class="n">1</span>
          <div><b>${PASOS[0][0]}</b><span>${PASOS[0][1]}</span></div><span class="flecha">›</span></button></li>`;
+  // Paso 2 (materiales): se abre cuando ya hay modelo, porque los herrajes dependen del diseño.
+  const paso2 = !esCloset ? '' : cfg?.materiales && modelo
+    ? `<li class="hecho"><span class="n">✔</span>
+         <div><b>Materiales</b><span>${resumenMateriales(cfg.materiales)} · ${nombreColor(cfg.color)}</span>
+           <span class="acciones"><button class="enlace" data-ir="#closet/materiales">Cambiar</button></span></div></li>`
+    : modelo
+      ? `<li class="activo"><button class="paso-boton" data-ir="#closet/materiales"><span class="n">2</span>
+           <div><b>${PASOS[1][0]}</b><span>${PASOS[1][1]}</span></div><span class="flecha">›</span></button></li>`
+      : `<li class="bloqueado"><span class="n">2</span><div><b>${PASOS[1][0]}</b><span>Primero escoge el modelo.</span></div></li>`;
   app.innerHTML = `
     <div style="--c:${t.color}">
     <button class="volver" data-ir="#">‹ Volver</button>
@@ -95,7 +105,8 @@ function trabajo(t) {
     </div>
     <ol class="pasos">
       ${paso1}
-      ${PASOS.map(([b, s], i) => (esCloset && i === 0) ? '' :
+      ${paso2}
+      ${PASOS.map(([b, s], i) => (esCloset && i < 2) ? '' :
         `<li><span class="n">${i + 1}</span><div><b>${b}</b><span>${s}</span></div></li>`).join('')}
     </ol>
     <p class="pronto">🛠️ ${esCloset ? 'Los siguientes pasos están en construcción.' : 'Esta sección está en construcción. Empezamos por el Closet.'}</p>
@@ -156,7 +167,11 @@ function borradorPara(id) {
   const m = modeloPorId(id);
   const cfg = leer('closet');
   if (cfg?.modelo === id && cfg.diseno) return copiar(cfg);
-  return { modelo: id, diseno: { medidas: copiar(m.medidas), cuerpos: copiar(m.cuerpos) }, color: 'cedro', puerta: 'ninguna', ajustado: false };
+  // modelo nuevo: se conservan los materiales y el color ya escogidos
+  const diseno = { medidas: copiar(m.medidas), cuerpos: copiar(m.cuerpos) };
+  if (cfg?.diseno?.espesor) diseno.espesor = cfg.diseno.espesor;
+  return { modelo: id, diseno, color: cfg?.color || 'cedro', puerta: 'ninguna', ajustado: false,
+           ...(cfg?.materiales ? { materiales: cfg.materiales } : {}) };
 }
 
 async function closet3d(id) {
@@ -262,7 +277,71 @@ async function closetPlano() {
     </div>`;
 }
 
-// ---------- Rutas: #closet, #closet/modelos, #closet/3d/<modelo>, #closet/plano ----------
+// ---------- Closet: materiales ----------
+const PESTANAS_MAT = [['tableros', '🪵 Tableros'], ['acabados', '✂️ Cantos y fondo'], ['herrajes', '🔩 Herrajes']];
+let mat = null;        // { valores, color } mientras se escoge; se guarda al final
+let pestanaMat = 'tableros';
+
+function closetMateriales() {
+  const cfg = leer('closet');
+  if (!cfg?.diseno) { location.hash = '#closet'; return; }
+  mat = { valores: { ...porDefecto(), ...(cfg.materiales || {}) }, color: cfg.color || 'cedro' };
+  pestanaMat = 'tableros';
+  app.innerHTML = `
+    <div class="pantalla">
+      <div class="fila-titulo"><button class="volver" data-ir="#closet">‹ Closet</button><b>Materiales</b></div>
+      <div class="pestanas" role="tablist">
+        ${PESTANAS_MAT.map(([id, n]) => `<button role="tab" data-pestana-mat="${id}">${n}</button>`).join('')}
+      </div>
+      <div class="preguntas" data-preguntas></div>
+      <button class="primario ancho" data-accion="siguiente-mat"></button>
+    </div>`;
+  pintarMateriales();
+}
+
+function pintarMateriales() {
+  const cont = app.querySelector('[data-preguntas]');
+  if (!cont) return;
+  const cfg = leer('closet');
+  const ctx = contexto(cfg.diseno, cfg.puerta);
+  app.querySelectorAll('[data-pestana-mat]').forEach(b => b.setAttribute('aria-selected', b.dataset.pestanaMat === pestanaMat));
+  const pregunta = clave => {
+    const p = PREGUNTAS[clave], sel = p.opciones.find(o => o.id === mat.valores[clave]) || p.opciones[0];
+    return `<section class="pregunta">
+      <h3>${p.titulo}</h3>
+      <div class="chips" role="radiogroup" aria-label="${p.titulo}">
+        ${p.opciones.map(o => `<button class="chip-op" role="radio" data-mat="${clave}" data-val="${o.id}" aria-checked="${o.id === sel.id}">${o.nombre}${o.rec ? '<i aria-label="recomendado">★</i>' : ''}</button>`).join('')}
+      </div>
+      <p class="explica">${sel.detalle}${sel.rec ? ' <b>★ Recomendado.</b>' : ''}</p>
+    </section>`;
+  };
+  const color = `<section class="pregunta">
+      <h3>Color de la melamina</h3>
+      <div class="colores mini">${COLORES.map(c => `
+        <button class="color" data-color-mat="${c.id}" aria-pressed="${c.id === mat.color}">
+          <span class="muestra" style="--base:${c.base};--veta:${c.oscura}"></span><small>${c.nombre}</small>
+        </button>`).join('')}</div>
+    </section>`;
+  const claves = GRUPOS[pestanaMat].filter(k => aplica(k, ctx));
+  cont.innerHTML = (pestanaMat === 'tableros' ? claves.map(pregunta).join('') + color : claves.map(pregunta).join(''))
+    || '<p class="nota">Este diseño no lleva herrajes especiales.</p>';
+  const i = PESTANAS_MAT.findIndex(([id]) => id === pestanaMat);
+  app.querySelector('[data-accion="siguiente-mat"]').textContent =
+    i < PESTANAS_MAT.length - 1 ? `Siguiente: ${PESTANAS_MAT[i + 1][1].replace(/^\S+\s/, '')} ›` : '✔ Guardar materiales';
+  cont.scrollTop = 0;
+}
+
+function guardarMateriales() {
+  const cfg = leer('closet');
+  cfg.materiales = mat.valores;
+  cfg.color = mat.color;
+  cfg.diseno.espesor = Number(mat.valores.espesor) / 1000;   // el 3D, el plano y el despiece usan este espesor
+  guardar('closet', cfg);
+  borrador = null;   // que el 3D se vuelva a armar con el tablero y color nuevos
+  location.hash = '#closet';
+}
+
+// ---------- Rutas: #closet, #closet/modelos, #closet/3d/<modelo>, #closet/plano, #closet/materiales ----------
 function mostrar() {
   visor?.destruir(); visor = null;
   const [id, sub, arg] = location.hash.slice(1).split('/');
@@ -270,14 +349,24 @@ function mostrar() {
   if (id === 'closet' && sub === 'modelos') modelosCloset();
   else if (id === 'closet' && sub === '3d') closet3d(arg);
   else if (id === 'closet' && sub === 'plano') closetPlano();
+  else if (id === 'closet' && sub === 'materiales') closetMateriales();
   else t ? trabajo(t) : inicio();
   app.scrollTop = 0;
 }
 
 app.addEventListener('click', e => {
-  const b = e.target.closest('[data-id], [data-ir], [data-modelo], [data-accion], [data-pestana], [data-ajustar], [data-puerta], [data-color]');
+  const b = e.target.closest('[data-id], [data-ir], [data-modelo], [data-accion], [data-pestana], [data-ajustar], [data-puerta], [data-color], [data-mat], [data-color-mat], [data-pestana-mat]');
   if (!b) return;
   const d = b.dataset;
+  if (d.mat) { mat.valores[d.mat] = d.val; pintarMateriales(); return; }
+  if (d.colorMat) { mat.color = d.colorMat; pintarMateriales(); return; }
+  if (d.pestanaMat) { pestanaMat = d.pestanaMat; pintarMateriales(); return; }
+  if (d.accion === 'siguiente-mat') {
+    const i = PESTANAS_MAT.findIndex(([id]) => id === pestanaMat);
+    if (i < PESTANAS_MAT.length - 1) { pestanaMat = PESTANAS_MAT[i + 1][0]; pintarMateriales(); }
+    else guardarMateriales();
+    return;
+  }
   if (d.id) location.hash = d.id;
   else if (d.ir) location.hash = d.ir;
   else if (d.modelo) { seleccion = d.modelo; pintarBarra(); }

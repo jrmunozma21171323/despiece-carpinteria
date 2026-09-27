@@ -2,7 +2,7 @@
 // Arrastrar = girar, pellizcar = acercar, tocar un cajón o una puerta = abrir/cerrar.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { ESPESOR as T, ZOCALO as Z, repartirCuerpos, colorPorId } from './modelos.js';
+import { ZOCALO as Z, espesorDe, repartirCuerpos, colorPorId } from './modelos.js';
 import { vestirCloset, liberarRopa } from './ropa3d.js';
 
 const FONDO_ESCENA = 0xefe2cc;   // mismo beige de la app
@@ -64,6 +64,7 @@ function cajaConVeta(w, h, d) {
 
 export function montarVisor(contenedor, disenoInicial, { color = 'cedro', puerta = 'ninguna', ropa = true } = {}) {
   let diseno = disenoInicial;
+  const T = espesorDe(diseno);   // espesor del tablero escogido en materiales
   const { ancho: W, alto: H, fondo: D } = diseno.medidas;
 
   // --- Motor ---
